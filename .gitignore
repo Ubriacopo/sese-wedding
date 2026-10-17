@@ -37,7 +37,5 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
-package-lock.json
-env.d.ts
 
 .vscode/

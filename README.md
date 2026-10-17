@@ -23,3 +23,9 @@ Edit `src/content/faqs.json` to add, remove or reorder FAQs. Each entry has a un
 ```
 
 FAQ column layout and spacing can be adjusted in `src/App.vue` and the existing rulebook styles in `src/assets/main.css`. Changes to the JSON are included on the next build.
+
+## GitHub Pages
+
+The site deploys to https://ubriacopo.github.io/sese-wedding/ through `.github/workflows/deploy.yml`. In the GitHub repository, select **Settings → Pages → Build and deployment → Source → GitHub Actions** once. Every push to `master` then installs dependencies, checks types, builds the site and deploys `dist/`. You can also run the workflow manually from the Actions tab.
+
+Vite's `base` is `/sese-wedding/` to match the repository path. Update it if the repository name changes; use `/` when moving to a custom domain. Commit `package-lock.json` and `env.d.ts` so the deployment can install and type-check the project. Keep `dist/` and `node_modules/` out of Git.
