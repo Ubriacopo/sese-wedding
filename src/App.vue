@@ -2,6 +2,7 @@
 import {onMounted, onUnmounted, ref} from 'vue'
 import PresenceForm from './components/PresenceForm.vue'
 import CinemaPoster from './components/CinemaPoster.vue'
+import UpcomingMovies from './components/UpcomingMovies.vue'
 import {wedding} from './content/wedding'
 import faqs from './content/faqs.json'
 
@@ -30,6 +31,7 @@ async function copyGiftIban() {
 }
 const navigation = [
   { href: '#giornata', label: 'La giornata' },
+  ...(wedding.upcomingMovies.length ? [{ href: '#prossimamente', label: 'Prossimamente' }] : []),
   { href: '#informazioni', label: 'Info utili' },
   { href: '#domande', label: 'FAQ' },
   { href: '#regalo', label: 'Un pensiero per noi' },
@@ -136,9 +138,17 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
         </li>
       </ol>
     </section>
+    <section v-if="wedding.upcomingMovies.length" id="prossimamente" class="mx-auto max-w-6xl px-6 pb-12 sm:px-12 sm:pb-16" aria-labelledby="upcoming-title">
+      <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div><p :class="label" class="mb-5">02 / Le prossime uscite</p>
+          <h2 id="upcoming-title" class="font-serif text-4xl tracking-tight sm:text-5xl">Prossimamente</h2></div>
+        <p class="max-w-xs text-sm leading-7 text-ink/65">Grandi emozioni, due protagonisti.<br>Il nostro cinema continua.</p>
+      </div>
+      <UpcomingMovies :movies="wedding.upcomingMovies" />
+    </section>
     <section id="informazioni" class="border-y border-line">
       <div class="mx-auto grid max-w-6xl gap-12 px-6 py-24 sm:px-12 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] md:gap-12 lg:gap-24">
-        <div><p :class="label" class="mb-5">02 / Per organizzarsi</p>
+        <div><p :class="label" class="mb-5">03 / Per organizzarsi</p>
           <h2 class="font-serif text-5xl leading-tight tracking-tight">Le cose<br>da sapere.</h2>
           <p class="mt-7 max-w-xs text-sm leading-7 text-ink/65">Raccoglieremo qui le informazioni pratiche, così avrete
             tutto a portata di mano.</p></div>
@@ -157,7 +167,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
     <section id="domande" class="mx-auto max-w-6xl px-6 py-24 sm:px-12">
       <div class="cinema-board">
         <header class="cinema-board-header">
-          <p class="cinema-eyebrow">03 / Prima di entrare in sala</p>
+          <p class="cinema-eyebrow">04 / Prima di entrare in sala</p>
           <h2>In programma</h2>
           <p>Domande, risposte e altre scene utili.</p>
           <div class="marquee-stars" aria-hidden="true">★ ★ ★</div>
@@ -183,7 +193,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
     </section>
     <section id="presenza" class="cinema-foyer px-6 py-24 sm:px-12 sm:py-28">
       <div class="mx-auto grid max-w-6xl items-start gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
-        <div><p class="text-[10px] uppercase tracking-[0.22em] text-[#f5f2e9]/70">04 / La biglietteria</p>
+        <div><p class="text-[10px] uppercase tracking-[0.22em] text-[#f5f2e9]/70">05 / La biglietteria</p>
           <h2 class="mt-6 font-serif text-6xl tracking-tight sm:text-7xl">Ci sarai?</h2>
           <p class="mt-6 max-w-md text-sm leading-7 text-[#f5f2e9]/80">La compagnia è la parte più bella.<br>{{
               wedding.rsvpDeadline ? `Conferma entro il ${wedding.rsvpDeadline}.` : 'Presto ti diremo entro quando confermare.'
@@ -195,7 +205,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
     </section>
     <section id="regalo" class="border-b border-line px-6 py-24 sm:px-12 sm:py-32" aria-labelledby="gift-title">
       <div class="gift-credits mx-auto max-w-3xl">
-        <p class="cinema-eyebrow">05 / Dopo i titoli di coda</p>
+        <p class="cinema-eyebrow">06 / Dopo i titoli di coda</p>
         <div class="gift-stars" aria-hidden="true">★ ★ ★</div>
         <h2 id="gift-title" class="font-serif text-4xl leading-tight tracking-tight sm:text-6xl">{{ wedding.gift.title }}</h2>
         <p class="mx-auto mt-7 max-w-lg text-sm leading-7 text-[#f5f2e9]/80">{{ wedding.gift.message }}</p>

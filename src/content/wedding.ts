@@ -1,3 +1,5 @@
+import { upcomingMovies } from './movies'
+
 // Empty fields display placeholders. Add your details here when ready.
 export const wedding = {
   names: 'Jacopo & Agnese',
@@ -11,6 +13,7 @@ export const wedding = {
     { title: 'A tavola', poster: 'dinner', tagline: 'Le scene migliori, insieme', time: '', venue: '', address: '', mapsUrl: '', note: 'Poi ci si siede a tavola. E si vede dove ci porta la serata.' },
     { title: 'I festeggiamenti', poster: 'party', tagline: 'Il gran finale lo scriviamo noi', time: '', venue: '', address: '', mapsUrl: '', note: 'Il dolce, la musica e ancora un po’ di tempo insieme. Il finale lo scriviamo con voi.' },
   ],
+  upcomingMovies,
   gift: {
     title: 'Il prossimo capitolo',
     message: 'Il regalo più bello è avervi con noi. Se desiderate farci un pensiero, potete contribuire alle prossime avventure del nostro film insieme.',

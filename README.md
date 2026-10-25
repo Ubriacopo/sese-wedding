@@ -36,7 +36,25 @@ The site deploys to https://ubriacopo.github.io/sese-wedding/ through `.github/w
 
 Vite's `base` is `/sese-wedding/` to match the repository path. Update it if the repository name changes; use `/` when moving to a custom domain. Commit `package-lock.json` and `env.d.ts` so the deployment can install and type-check the project. Keep `dist/` and `node_modules/` out of Git.
 
-## Gifts
+## Upcoming movie slideshow
+
+Each film has its own JSON file in `src/content/movies/`. Files are loaded automatically in filename order: use prefixes such as `01-our-film.json` and `02-the-sequel.json`. Add, remove or rename these JSON files to manage the slideshow; no TypeScript changes or separate manifest are needed.
+
+Place your poster in `public/posters/` and refer to its filename in `poster`. For example, `public/posters/noi.jpg` is configured with:
+
+```json
+{
+  "title": "Il nostro film",
+  "poster": "noi.jpg",
+  "tagline": "La nostra storia, sul grande schermo."
+}
+```
+
+`tagline`, `genre`, `release` and `fallbackPoster` are optional. The illustrated fallback can be `ceremony`, `toast`, `dinner` or `party`; it is shown if `poster` is empty or the image fails to load. A full HTTPS image URL also works. Portrait posters (ideally 2:3) work best. Local images resolve under the GitHub Pages base path automatically.
+
+The compact slideshow displays the poster, title and tagline, with arrows, numbered selectors and left/right keyboard keys. It advances manually. No JSON files hides the section and navigation link; a single film hides the controls.
+
+## Gift configuration
 
 Configure `gift` in `src/content/wedding.ts` for the cinema end-credits gift section. Add both `iban` and `accountHolder` to display bank details and the copy button; otherwise the placeholder is shown. `reference` is optional. The copy button selects the IBAN for manual copying if clipboard access is unavailable (including some LAN HTTP connections).
 
