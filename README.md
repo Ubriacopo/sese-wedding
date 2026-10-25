@@ -8,9 +8,9 @@ Edit `src/content/wedding.ts` for names, date, location, schedule, travel, accom
 
 The layout is in `src/App.vue`. Tailwind theme tokens and minimal global styles are in `src/assets/main.css`. The FAQ titles use the locally hosted Cinzel font; its license is included in `public/fonts`. No external services are needed.
 
-The event timeline uses `events` in `src/content/wedding.ts`. Edit `story` to replace the sample milestones with your own memories, or set `showStory: false` to hide the section and its navigation link. Event stages are illustrative; update them to match the actual schedule.
+The cinema programme uses `events` in `src/content/wedding.ts`. Event stages are illustrative; update them to match the actual schedule.
 
-The RSVP form lives in `src/components/PresenceForm.vue`. It collects first name, surname, email, attendance, party size, additional guest names, dietary requirements and a message. Without `rsvpEmail`, submission is a clearly labelled preview and does not send or save data. With `rsvpEmail`, submission opens a prefilled email that the guest must send. Replace `submitPresence` with a backend adapter when adding Supabase; implement server-side validation and appropriate access controls before enabling storage.
+The RSVP form lives in `src/components/PresenceForm.vue`. It collects first name, surname, email, attendance, party size, additional guest names and dietary requirements. Without `rsvpEmail`, submission is a clearly labelled preview and does not send or save data. With `rsvpEmail`, submission opens a prefilled email that the guest must send. Replace `submitPresence` with a backend adapter when adding Supabase; implement server-side validation and appropriate access controls before enabling storage.
 
 Edit `src/content/faqs.json` to add, remove or reorder FAQs. Each entry has a unique `id` (also used for its anchor), a plain-text `question`, an optional plain-text `subtitle` (omit it or leave it empty to hide it), and an `answerHtml` string. Answers render as HTML, so you can add paragraphs, links, lists and Tailwind classes. Keep this HTML authored in the repository; it is rendered directly without sanitization. Escape double quotes inside JSON strings, for example:
 
@@ -22,10 +22,22 @@ Edit `src/content/faqs.json` to add, remove or reorder FAQs. Each entry has a un
 }
 ```
 
-FAQ column layout and spacing can be adjusted in `src/App.vue` and the existing rulebook styles in `src/assets/main.css`. Changes to the JSON are included on the next build.
+FAQ listings and spacing can be adjusted in `src/App.vue` and the cinema board styles in `src/assets/main.css`. Changes to the JSON are included on the next build.
 
-## GitHub Pages
+## Local network preview
+
+Run `npm run dev` and open `http://<your-PC-IP>:5173/sese-wedding/` from a device on the same network. For the production preview, run `npm run build` then `npm run preview` and use port `4173` instead. Both servers listen on all IPv4 interfaces and use fixed ports; a busy port is reported instead of silently changing the URL.
+
+If Windows Firewall blocks access, run `powershell -ExecutionPolicy RemoteSigned -File .\scripts\Enable-LocalNetwork.ps1` from an administrator terminal. This allows TCP ports 5173 and 4173 from the local subnet. The firewall stays enabled. To remove the allow rule, run `Remove-NetFirewallRule -Name SeseWedding-LocalNetwork` as administrator.
+
+## GitHub Pages deployment
 
 The site deploys to https://ubriacopo.github.io/sese-wedding/ through `.github/workflows/deploy.yml`. In the GitHub repository, select **Settings → Pages → Build and deployment → Source → GitHub Actions** once. Every push to `master` then installs dependencies, checks types, builds the site and deploys `dist/`. You can also run the workflow manually from the Actions tab.
 
 Vite's `base` is `/sese-wedding/` to match the repository path. Update it if the repository name changes; use `/` when moving to a custom domain. Commit `package-lock.json` and `env.d.ts` so the deployment can install and type-check the project. Keep `dist/` and `node_modules/` out of Git.
+
+## Gifts
+
+Configure `gift` in `src/content/wedding.ts` for the cinema end-credits gift section. Add both `iban` and `accountHolder` to display bank details and the copy button; otherwise the placeholder is shown. `reference` is optional. The copy button selects the IBAN for manual copying if clipboard access is unavailable (including some LAN HTTP connections).
+
+The FAQ board uses `showtime` (for example `15:30`) and `seatsLeft` (for example `42`) in each FAQ entry as cinema decorations. These values do not represent the wedding schedule or actual remaining capacity.
