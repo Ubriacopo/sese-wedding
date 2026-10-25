@@ -1,4 +1,7 @@
+import movies from './movies.json'
+
 type MovieDescription = {
+  id?: string
   title: string
   poster: string
   tagline?: string
@@ -17,16 +20,12 @@ export type UpcomingMovie = {
   fallbackPoster: string
 }
 
-// One JSON per movie, ordered by filename. No separate list to maintain.
-const descriptions = import.meta.glob<MovieDescription>('./movies/*.json', {
-  eager: true,
-  import: 'default',
-})
+// The array order is the slideshow order; IDs are optional.
+const descriptions: MovieDescription[] = movies
 
-export const upcomingMovies: UpcomingMovie[] = Object.entries(descriptions)
-  .sort(([first], [second]) => first.localeCompare(second))
-  .map(([path, movie]) => ({
-    id: path.slice(path.lastIndexOf('/') + 1, -5),
+export const upcomingMovies: UpcomingMovie[] = descriptions
+  .map((movie, index) => ({
+    id: movie.id || `movie-${index + 1}`,
     title: movie.title,
     poster: movie.poster,
     tagline: movie.tagline || '',

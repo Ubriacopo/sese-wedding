@@ -38,21 +38,24 @@ Vite's `base` is `/sese-wedding/` to match the repository path. Update it if the
 
 ## Upcoming movie slideshow
 
-Each film has its own JSON file in `src/content/movies/`. Files are loaded automatically in filename order: use prefixes such as `01-our-film.json` and `02-the-sequel.json`. Add, remove or rename these JSON files to manage the slideshow; no TypeScript changes or separate manifest are needed.
+Configure all films in the single array `src/content/movies.json`. Array order is slideshow order: add, remove or reorder entries directly in that file.
 
-Place your poster in `public/posters/` and refer to its filename in `poster`. For example, `public/posters/noi.jpg` is configured with:
+Place posters in `public/posters/` and refer to the filename in `poster`:
 
 ```json
-{
-  "title": "Il nostro film",
-  "poster": "noi.jpg",
-  "tagline": "La nostra storia, sul grande schermo."
-}
+[
+  {
+    "title": "Il nostro film",
+    "poster": "noi.jpg",
+    "tagline": "La nostra storia, sul grande schermo.",
+    "genre": "Commedia romantica"
+  }
+]
 ```
 
-`tagline`, `genre`, `release` and `fallbackPoster` are optional. The illustrated fallback can be `ceremony`, `toast`, `dinner` or `party`; it is shown if `poster` is empty or the image fails to load. A full HTTPS image URL also works. Portrait posters (ideally 2:3) work best. Local images resolve under the GitHub Pages base path automatically.
+`tagline`, `genre`, `release`, `fallbackPoster` and `id` are optional. IDs are generated if omitted; use unique IDs if setting them manually. The illustrated fallback can be `ceremony`, `toast`, `dinner` or `party`; it is shown if `poster` is empty or fails to load. A full HTTPS image URL also works. Portrait posters (ideally 2:3) work best. Local images resolve under the GitHub Pages base path automatically.
 
-The compact slideshow displays the poster, title and tagline, with arrows, numbered selectors and left/right keyboard keys. It advances manually. No JSON files hides the section and navigation link; a single film hides the controls.
+The compact slideshow shows the poster, genre, title and tagline. It supports arrows, numbered selectors and left/right keyboard keys, and advances manually. An empty array hides the section and navigation link; a single film hides the controls.
 
 ## Gift configuration
 
