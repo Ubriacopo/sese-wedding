@@ -113,6 +113,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
       <p class="mx-auto mt-7 max-w-lg text-sm leading-7 text-ink/75">Una giornata insieme alle persone a cui vogliamo
         bene. Ci saranno un sì, qualcosa di buono da mangiare e tempo per festeggiare.</p>
     </section>
+    <div class="programme-wallpaper programme-projector">
     <section id="giornata" class="mx-auto max-w-6xl px-6 py-24 sm:px-12 sm:py-32">
       <div class="mb-14 flex flex-wrap items-end justify-between gap-6">
         <div><p :class="label" class="mb-5">01 / La programmazione del giorno</p>
@@ -138,7 +139,10 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
         </li>
       </ol>
     </section>
-    <section v-if="wedding.upcomingMovies.length" id="prossimamente" class="mx-auto max-w-6xl px-6 pb-12 sm:px-12 sm:pb-16" aria-labelledby="upcoming-title">
+    </div>
+    <div v-if="wedding.upcomingMovies.length" aria-hidden="true" class="h-12 border-y border-line bg-paper sm:h-16"></div>
+    <div class="programme-wallpaper">
+    <section v-if="wedding.upcomingMovies.length" id="prossimamente" class="mx-auto max-w-6xl px-6 pt-12 pb-12 sm:px-12 sm:pt-16 sm:pb-16" aria-labelledby="upcoming-title">
       <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div><p :class="label" class="mb-5">02 / Le prossime uscite</p>
           <h2 id="upcoming-title" class="font-serif text-4xl tracking-tight sm:text-5xl">Prossimamente</h2></div>
@@ -146,6 +150,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
       </div>
       <UpcomingMovies :movies="wedding.upcomingMovies" />
     </section>
+    </div>
     <section id="informazioni" class="border-y border-line">
       <div class="mx-auto grid max-w-6xl gap-12 px-6 py-24 sm:px-12 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] md:gap-12 lg:gap-24">
         <div><p :class="label" class="mb-5">03 / Per organizzarsi</p>
@@ -164,8 +169,8 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
         </div>
       </div>
     </section>
-    <section id="domande" class="mx-auto max-w-6xl px-6 py-24 sm:px-12">
-      <div class="cinema-board">
+    <section id="domande" class="programme-wallpaper px-6 py-24 sm:px-12">
+      <div class="cinema-board mx-auto max-w-[1056px]">
         <header class="cinema-board-header">
           <p class="cinema-eyebrow">04 / Prima di entrare in sala</p>
           <h2>In programma</h2>
@@ -203,7 +208,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
         <PresenceForm/>
       </div>
     </section>
-    <section id="regalo" class="border-b border-line px-6 py-24 sm:px-12 sm:py-32" aria-labelledby="gift-title">
+    <section id="regalo" class="programme-wallpaper border-b border-line px-6 py-24 sm:px-12 sm:py-32" aria-labelledby="gift-title">
       <div class="gift-credits mx-auto max-w-3xl">
         <p class="cinema-eyebrow">06 / Dopo i titoli di coda</p>
         <div class="gift-stars" aria-hidden="true">★ ★ ★</div>
