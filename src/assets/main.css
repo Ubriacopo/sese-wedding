@@ -44,8 +44,9 @@
   .programme-wallpaper {
     background-color: var(--color-paper);
     background-image: linear-gradient(color-mix(in srgb, var(--color-paper) 82%, transparent), color-mix(in srgb, var(--color-paper) 82%, transparent)), var(--programme-background, url('/wallpaper.jpg'));
-    background-position: center;
-    background-size: cover;
+    background-position: center top;
+    background-size: 100% 100%, 100% auto;
+    background-repeat: no-repeat, repeat-y;
   }
   .programme-projector { --programme-background: url('/slide-projector.jpg'); }
   .programme-banner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem 2rem; border-block: 3px double var(--color-olive); padding-block: 1rem; margin-bottom: 2rem; font-family: 'Courier New', monospace; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--color-olive); }

@@ -179,7 +179,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
         </header>
         <div class="board-columns" aria-hidden="true"><span>Sala</span><span>Le vostre domande</span><span class="listing-desktop-heading">Orario</span><span class="listing-desktop-heading">Posti liberi</span><span>Info</span></div>
         <div class="cinema-listings">
-          <details v-for="(faq, index) in faqs" :id="faq.id" :key="faq.id" class="cinema-listing">
+          <details v-for="(faq, index) in faqs" :id="faq.id" :key="faq.id" name="cinema-faq" class="cinema-listing">
             <summary>
               <span class="listing-number" aria-hidden="true">{{ String(index + 1).padStart(2, '0') }}</span>
               <span class="listing-title">{{ faq.question }}<span v-if="faq.subtitle" class="listing-subtitle">{{ faq.subtitle }}</span></span>
