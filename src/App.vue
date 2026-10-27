@@ -1,28 +1,31 @@
 <script setup lang="ts">
-import {onMounted, onUnmounted, ref} from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import PresenceForm from './components/PresenceForm.vue'
-import CinemaPoster from './components/CinemaPoster.vue'
-import UpcomingMovies from './components/UpcomingMovies.vue'
-import {wedding} from './content/wedding'
+import EpisodeArtwork from './components/EpisodeArtwork.vue'
+import { wedding } from './content/wedding'
 import faqs from './content/faqs.json'
 
 const isDark = ref(document.documentElement.dataset.theme !== 'light')
-
+const activeSection = ref(window.location.hash)
+const giftCopyStatus = ref('')
+const ibanInput = ref<HTMLInputElement>()
+const navigation = [
+  { href: '#giornata', label: 'Gli episodi' },
+  { href: '#invito', label: 'L’invito' },
+  { href: '#informazioni', label: 'Info utili' },
+  { href: '#domande', label: 'Assistenza' },
+  { href: '#regalo', label: 'Un pensiero per noi' },
+]
 function toggleTheme() {
   isDark.value = !isDark.value
   const theme = isDark.value ? 'dark' : 'light'
   document.documentElement.dataset.theme = theme
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark.value ? '#20271f' : '#f5f2e9')
-  try {
-    localStorage.setItem('wedding-theme', theme)
-  } catch { /* The theme still works without storage. */
-  }
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark.value ? '#141414' : '#f6f3ed')
+  try { localStorage.setItem('wedding-theme', theme) } catch { /* Theme works without storage. */ }
 }
-
-const activeSection = ref(window.location.hash)
-const giftCopyStatus = ref('')
-const ibanInput = ref<HTMLInputElement>()
-
+function updateActiveSection() { activeSection.value = window.location.hash }
+onMounted(() => window.addEventListener('hashchange', updateActiveSection))
+onUnmounted(() => window.removeEventListener('hashchange', updateActiveSection))
 async function copyGiftIban() {
   if (!wedding.gift.iban || !wedding.gift.accountHolder) return
   try {
@@ -34,269 +37,91 @@ async function copyGiftIban() {
     giftCopyStatus.value = 'Selezione pronta: copia l’IBAN dal campo qui sopra.'
   }
 }
-
-const navigation = [
-  {href: '#giornata', label: 'La giornata'},
-  ...(wedding.upcomingMovies.length ? [{href: '#prossimamente', label: 'Prossimamente'}] : []),
-  {href: '#informazioni', label: 'Info utili'},
-  {href: '#domande', label: 'FAQ'},
-  {href: '#regalo', label: 'Un pensiero per noi'},
-  {href: '#presenza', label: 'Ci sarai? ↗'},
-]
-
-function updateActiveSection() {
-  activeSection.value = window.location.hash
-}
-
-let timelineObserver: IntersectionObserver | undefined
-onMounted(() => {
-  window.addEventListener('hashchange', updateActiveSection)
-  const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
-  if (motionPreference.matches || !('IntersectionObserver' in window)) return
-  timelineObserver = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-      if (!entry.isIntersecting) continue
-      if (!motionPreference.matches) {
-        entry.target.animate([
-          {opacity: 0.35, transform: 'translateY(16px)'},
-          {opacity: 1, transform: 'translateY(0)'},
-        ], {duration: 650, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)'})
-      }
-      timelineObserver?.unobserve(entry.target)
-    }
-  }, {threshold: 0.15})
-  document.querySelectorAll('.screening').forEach((entry) => timelineObserver?.observe(entry))
-})
-onUnmounted(() => {
-  timelineObserver?.disconnect()
-  window.removeEventListener('hashchange', updateActiveSection)
-})
-
-const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
 </script>
 
 <template>
-  <a href="#main"
-     class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-paper focus:p-4">Vai al
-    contenuto</a>
-  <header
-      class="site-header mx-auto flex max-w-7xl flex-col items-start justify-between gap-3 sm:flex-row sm:items-center border-b border-line px-4 py-4 sm:gap-6 sm:px-12 sm:py-6">
-    <a href="#" aria-label="Jacopo e Agnese, inizio" class="shrink-0 font-serif text-2xl italic">j<span
-        class="px-1 text-olive">&</span>a</a>
-    <nav aria-label="Navigazione principale" class="w-full min-w-0 sm:w-auto">
-      <ul class="flex snap-x snap-proximity gap-6 overflow-x-auto overscroll-x-contain px-1 py-2 text-xs sm:flex-wrap sm:justify-end sm:gap-6">
-        <li v-for="link in navigation" :key="link.href" class="shrink-0 snap-start">
-          <a :href="link.href" :aria-current="activeSection === link.href ? 'location' : undefined"
-             class="flex min-h-11 items-center whitespace-nowrap underline-offset-8 transition-colors focus-visible:outline-offset-2 motion-reduce:transition-none"
-             :class="activeSection === link.href ? 'text-olive underline' : 'hover:text-olive hover:underline'">
-            {{ link.label }}
-          </a>
-        </li>
-      </ul>
+  <a href="#main" class="skip-link">Vai al contenuto</a>
+  <header class="site-header page-width">
+    <a href="#" class="brand" :aria-label="`${wedding.names}, inizio`">{{ wedding.series.brand }}<span>LA NOSTRA SERIE</span></a>
+    <nav aria-label="Navigazione principale">
+      <a v-for="link in navigation" :key="link.href" :href="link.href" :aria-current="activeSection === link.href ? 'location' : undefined">{{ link.label }}</a>
     </nav>
-    <button type="button" class="theme-toggle" :aria-pressed="isDark" aria-label="Tema scuro" @click="toggleTheme">
-      <span aria-hidden="true">{{ isDark ? '◐' : '◑' }}</span> {{ isDark ? 'Luci accese' : 'Luci spente' }}
-    </button>
+    <button type="button" class="theme-toggle" :aria-pressed="isDark" aria-label="Tema scuro" @click="toggleTheme">{{ isDark ? '☀' : '☾' }}<span class="sr-only">Cambia tema</span></button>
   </header>
-  <main id="main" class="[overflow-wrap:anywhere]">
-    <section
-        class="cinema-poster mx-auto flex min-h-[560px] max-w-7xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6 sm:py-24 sm:min-h-[760px]">
-      <p :class="label" class="mb-10">Una storia d’amore · Un’unica prima</p>
-      <p class="mb-5 font-serif text-xl italic sm:text-2xl">{{ wedding.names }}</p>
-      <h1 class="font-serif text-[clamp(2.75rem,11.5vw,10rem)] leading-[0.95] tracking-[-0.065em]">Ci sposiamo<span
-          class="text-olive">.</span></h1>
-      <div class="mt-12 flex flex-col items-center gap-3 text-xs sm:flex-row sm:gap-6">
-        <span>{{ wedding.date || 'La data? Ve la diciamo presto.' }}</span>
-        <span aria-hidden="true" class="hidden text-olive sm:block">✳</span>
-        <span>{{ wedding.location || 'Il posto? Anche quello.' }}</span>
+  <main id="main">
+    <section class="series-hero page-width" aria-labelledby="series-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="original-mark">J&A</span> UNA SERIE ORIGINALE</p>
+        <p class="hero-names">{{ wedding.names }} presentano</p>
+        <h1 id="series-title">La nostra<br>prossima<br><em>stagione.</em></h1>
+        <div class="series-meta"><span class="match">Una storia da vivere insieme</span><span>2027</span><span class="meta-badge">Sì</span><span>1 giorno · 4 episodi</span></div>
+        <p class="hero-description">{{ wedding.series.description }}</p>
+        <div class="hero-actions"><a href="#presenza" class="button button-primary"><span aria-hidden="true">▶</span> Ci sarò</a><a href="#giornata" class="button button-secondary"><span aria-hidden="true">ⓘ</span> Scopri gli episodi</a></div>
+        <p class="hero-date">{{ wedding.date || 'Data da annunciare' }}<span> {{ wedding.location || 'Luogo da annunciare' }}</span></p>
       </div>
-      <div class="film-credit mt-12" aria-hidden="true"><span class="film-reel"></span><span>Una produzione<br>Jacopo &amp; Agnese</span>
+      <div class="hero-art" aria-hidden="true">
+        <div class="art-topline"><span>J&A ORIGINAL</span><span>01 / ∞</span></div>
+        <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+        <div class="art-monogram">J<span>&</span>A</div>
+        <div class="art-caption"><span>OGNI STAGIONE CI HA PORTATI QUI.</span><strong>Il bello<br>deve ancora venire.</strong><span>UNA NUOVA STAGIONE · {{ wedding.date || 'PROSSIMAMENTE' }}</span></div>
+        <span class="art-side">ROMANTICO · COMMEDIA · VITA VERA</span>
       </div>
-      <a href="#giornata"
-         class="mt-12 inline-flex min-h-11 items-center text-[10px] uppercase tracking-[0.2em] text-olive">Tutti i
-        dettagli <span
-            aria-hidden="true" class="ml-3">↓</span></a>
     </section>
-    <section class="border-y border-line bg-panel px-6 py-20 text-center sm:py-24">
-      <p :class="label">Con la partecipazione di tutti voi</p>
-      <h2 class="mx-auto mt-6 max-w-2xl font-serif text-4xl leading-tight tracking-tight sm:text-5xl">Il nostro film più
-        bello.<br>Con voi, al nostro fianco.</h2>
-      <p class="mx-auto mt-7 max-w-lg text-sm leading-7 text-ink/75">Una giornata insieme alle persone a cui vogliamo
-        bene. Ci saranno un sì, qualcosa di buono da mangiare e tempo per festeggiare.</p>
+    <section id="giornata" class="section page-width" aria-labelledby="episodes-title">
+      <div class="section-heading"><div><p class="eyebrow">La stagione del sì</p><h2 id="episodes-title">Gli episodi della giornata</h2></div><span class="season-selector">Stagione 1</span></div>
+      <p class="section-intro">Dalla prima emozione all’ultimo ballo. Questa volta, niente tasto pausa.</p>
+      <ol class="episode-grid">
+        <li v-for="(event, index) in wedding.events" :key="event.title" class="episode-card">
+          <div class="episode-visual"><EpisodeArtwork :art="event.poster" /><span class="episode-number" aria-hidden="true">{{ String(index + 1).padStart(2, '0') }}</span></div>
+          <div class="episode-title"><h3>{{ event.title }}</h3><span>{{ event.time || 'Orario in arrivo' }}</span></div>
+          <p class="episode-tagline">{{ event.tagline }}</p>
+          <p class="episode-venue">{{ event.venue || wedding.location || 'Luogo da annunciare' }}<span v-if="event.address"> · {{ event.address }}</span></p>
+          <a v-if="event.mapsUrl" :href="event.mapsUrl" target="_blank" rel="noopener noreferrer" class="text-link">Apri la mappa ↗</a>
+        </li>
+      </ol>
     </section>
-    <div class="programme-wallpaper programme-projector">
-      <section id="giornata" class="mx-auto max-w-6xl px-6 py-24 sm:px-12 sm:py-32">
-        <div class="mb-14 flex flex-wrap items-end justify-between gap-6">
-          <div><p :class="label" class="mb-5">01 / La programmazione del giorno</p>
-            <h2 class="font-serif text-5xl tracking-tight sm:text-6xl">Oggi in sala</h2></div>
-          <p class="max-w-xs text-sm leading-6 text-ink/65">{{ wedding.date || 'La data sarà annunciata presto.' }}<br>Quattro
-            momenti, un’unica storia.</p>
-        </div>
-        <div class="programme-banner"><span>In cartellone</span><span>{{ wedding.names }} · Proiezione unica</span>
-        </div>
-        <ol class="screenings">
-          <li v-for="(event, index) in wedding.events" :key="event.title" class="screening">
-            <article :aria-labelledby="`screening-${index}`">
-              <CinemaPoster :title-id="`screening-${index}`" :title="event.title" :poster="event.poster"
-                            :tagline="event.tagline" :billing="wedding.names">
-                Atto {{ String(index + 1).padStart(2, '0') }} · Solo per questa prima
-              </CinemaPoster>
-              <dl class="screening-details">
-                <div>
-                  <dt>Inizio</dt>
-                  <dd>{{ event.time || 'Orario in arrivo' }}</dd>
-                </div>
-                <div>
-                  <dt>Sala</dt>
-                  <dd>{{ event.venue || wedding.location || 'Luogo da annunciare' }}<span v-if="event.address"
-                                                                                          class="mt-1 block font-normal">{{
-                      event.address
-                    }}</span></dd>
-                </div>
-              </dl>
-              <a v-if="event.mapsUrl" :href="event.mapsUrl" target="_blank" rel="noopener noreferrer"
-                 class="mt-4 inline-flex min-h-11 items-center border-b border-olive/50 text-xs hover:text-olive">Apri
-                la mappa ↗</a>
-            </article>
-          </li>
-        </ol>
-      </section>
-    </div>
-    <div v-if="wedding.upcomingMovies.length" aria-hidden="true"
-         class="h-12 border-y border-line bg-paper sm:h-16"></div>
-    <div class="programme-wallpaper">
-      <section v-if="wedding.upcomingMovies.length" id="prossimamente"
-               class="mx-auto max-w-6xl px-6 pt-12 pb-12 sm:px-12 sm:pt-16 sm:pb-16" aria-labelledby="upcoming-title">
-        <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div><p :class="label" class="mb-5">02 / Le prossime uscite</p>
-            <h2 id="upcoming-title" class="font-serif text-4xl tracking-tight sm:text-5xl">Prossimamente</h2></div>
-          <p class="max-w-xs text-sm leading-7 text-ink/65">Grandi emozioni, due protagonisti.<br>Il nostro cinema
-            continua.</p>
-        </div>
-        <UpcomingMovies :movies="wedding.upcomingMovies"/>
-      </section>
-    </div>
-    <section id="informazioni" class="border-y border-line">
-      <div
-          class="mx-auto grid max-w-6xl gap-12 px-6 py-24 sm:px-12 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] md:gap-12 lg:gap-24">
-        <div><p :class="label" class="mb-5">03 / Per organizzarsi</p>
-          <h2 class="font-serif text-5xl leading-tight tracking-tight">Le cose<br>da sapere.</h2>
-          <p class="mt-7 max-w-xs text-sm leading-7 text-ink/65">Raccoglieremo qui le informazioni pratiche, così avrete
-            tutto a portata di mano.</p></div>
-        <div class="space-y-9">
-          <article class="border-b border-line pb-9"><h3 class="font-serif text-2xl">Come arrivare</h3>
-            <p class="mt-4 text-sm leading-7 text-ink/65">
-              {{ wedding.travel || 'Presto qui troverete indicazioni, parcheggi e consigli per raggiungerci.' }}</p>
-          </article>
-          <article><h3 class="font-serif text-2xl">Dove fermarsi</h3>
-            <p class="mt-4 text-sm leading-7 text-ink/65">{{
-                wedding.accommodation || 'Venite da lontano? Aggiungeremo qualche suggerimento per dormire in zona.'
-              }}</p></article>
+    <section id="invito" class="invitation-section">
+      <div class="page-width invitation-grid">
+        <div><p class="eyebrow">Prima dello streaming, una busta speciale</p><h2>{{ wedding.series.invitationTitle }}</h2><p>{{ wedding.series.invitationMessage }}</p><p class="muted">Un piccolo ritorno ai DVD per posta, per una storia che continua dal vivo.</p><a href="#presenza" class="text-link">Conferma la tua presenza <span aria-hidden="true">↗</span></a></div>
+        <div class="mailer" aria-label="Invito ispirato a una busta per DVD per posta">
+          <div class="mailer-top"><strong>{{ wedding.series.brand }}</strong><span>UN INVITO ORIGINALE</span></div>
+          <div class="mailer-insert"><span class="eyebrow">IN ARRIVO NELLA VOSTRA VITA</span><strong>{{ wedding.names }}</strong><p>{{ wedding.series.title }}</p><div class="disc" aria-hidden="true"><span>J&A<br>LA STAGIONE DEL SÌ</span></div></div>
+          <div class="mailer-envelope"><span>CONSEGNA SPECIALE / {{ wedding.date || 'DATA IN ARRIVO' }}</span><strong>Ci sposiamo.<br>Voi ci siete?</strong><div><span>{{ wedding.location || 'Luogo da annunciare' }}</span><span aria-hidden="true">↗</span></div></div>
         </div>
       </div>
     </section>
-    <section id="domande" class="programme-wallpaper max-sm:bg-none max-sm:bg-transparent sm:px-12 sm:py-24">
-      <div class="cinema-board mx-auto max-w-[1056px]">
-        <header class="cinema-board-header">
-          <p class="cinema-eyebrow">04 / Prima di entrare in sala</p>
-          <h2>F.A.Q</h2>
-          <p>Domande, risposte e altre scene utili.</p>
-          <div class="marquee-stars" aria-hidden="true">★ ★ ★</div>
-        </header>
-        <div class="board-columns" aria-hidden="true"><span>Sala</span><span>Le vostre domande</span><span
-            class="listing-desktop-heading">Orario</span><span class="listing-desktop-heading">Posti liberi</span><span>Info</span>
+    <section id="informazioni" class="section page-width" aria-labelledby="info-title">
+      <div class="section-heading"><div><p class="eyebrow">Tutto pronto per la première?</p><h2 id="info-title">Prima di premere play</h2></div></div>
+      <div class="info-grid"><article><span class="info-icon" aria-hidden="true">↗</span><h3>Come arrivare</h3><p>{{ wedding.travel || 'Presto qui troverete indicazioni, parcheggi e consigli per raggiungerci.' }}</p></article><article><span class="info-icon" aria-hidden="true">⌂</span><h3>Dove fermarsi</h3><p>{{ wedding.accommodation || 'Venite da lontano? Aggiungeremo qualche suggerimento per dormire in zona.' }}</p></article></div>
+    </section>
+    <section id="domande" class="help-section section page-width" aria-labelledby="faq-title">
+      <div class="help-intro">
+        <div class="help-cover">
+          <p class="eyebrow"><span class="original-mark">{{ wedding.series.brand }}</span> UNA SERIE ORIGINALE</p>
+          <span class="help-cover-mark" aria-hidden="true">?</span>
+          <h2 id="faq-title">{{ wedding.helpSeries.title }}</h2>
+          <p class="help-cover-genre">{{ wedding.helpSeries.genre }}</p>
         </div>
-        <div class="cinema-listings">
-          <details v-for="(faq, index) in faqs" :id="faq.id" :key="faq.id" name="cinema-faq" class="cinema-listing">
-            <summary>
-              <span class="listing-number" aria-hidden="true">{{ String(index + 1).padStart(2, '0') }}</span>
-              <span class="listing-title">
-                {{ faq.question }}
-                <span v-if="faq.subtitle" class="listing-subtitle">{{ faq.subtitle }}</span>
-              </span>
-              <span class="listing-showing" aria-hidden="true">
-                <span class="listing-showtime"><span class="listing-mobile-label">Ore </span>{{ faq.showtime }}</span>
-                <span class="listing-seats"><span class="seat-light"></span>{{ faq.seatsLeft }}<span
-                    class="listing-mobile-label"> posti liberi</span></span>
-              </span>
-              <span class="listing-action" aria-hidden="true">+</span>
-            </summary>
-            <div
-                class="listing-answer [&_a]:underline [&_a]:underline-offset-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
-                v-html="faq.answerHtml"></div>
-          </details>
-        </div>
-        <p class="board-scene-note">Orari e posti liberi sono dettagli di scena.</p>
-        <footer class="cinema-board-footer"><span>{{ wedding.names }} · La prima</span><a href="#presenza">Il tuo
-          biglietto ↗</a></footer>
+        <div class="help-series-meta"><span>{{ wedding.helpSeries.season }}</span><span>{{ faqs.length }} episodi</span><span>Per tutti gli invitati</span></div>
+        <p>{{ wedding.helpSeries.description }}</p>
+      </div>
+      <div class="faq-list">
+        <div class="faq-season-heading"><h3>Episodi</h3><span>{{ wedding.helpSeries.season }} · F.A.Q.</span></div>
+        <details v-for="(faq, index) in faqs" :id="faq.id" :key="faq.id" name="streaming-faq">
+          <summary>
+            <span class="faq-number" aria-hidden="true">{{ String(index + 1).padStart(2, '0') }}</span>
+            <span class="faq-episode-copy"><span class="faq-episode-label">Episodio {{ index + 1 }}</span>{{ faq.question }}<small v-if="faq.subtitle">{{ faq.subtitle }}</small></span>
+            <span class="faq-action" aria-hidden="true">+</span>
+          </summary>
+          <div class="faq-answer [&_a]:underline [&_a]:underline-offset-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5" v-html="faq.answerHtml"></div>
+        </details>
       </div>
     </section>
-    <section class="cinema-foyer px-6 py-24 sm:px-12 sm:py-28">
-      <div class="mx-auto grid max-w-6xl items-start gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
-        <div><p class="text-[10px] uppercase tracking-[0.22em] text-[#f5f2e9]/70">05 / La biglietteria</p>
-          <h2 class="mt-6 font-serif text-6xl tracking-tight sm:text-7xl">Ci sarai?</h2>
-          <p class="mt-6 max-w-md text-sm leading-7 text-[#f5f2e9]/80">La compagnia è la parte più bella.<br>{{
-              wedding.rsvpDeadline ? `Conferma entro il ${wedding.rsvpDeadline}.` : 'Presto ti diremo entro quando confermare.'
-            }}</p>
-          <div class="mt-10 ticket-caption"><span aria-hidden="true">✳</span><span class="font-serif text-xl italic">Questa prima è anche tua.</span>
-          </div>
-        </div>
-        <PresenceForm/>
-      </div>
-    </section>
-    <section id="regalo" class="programme-wallpaper border-b border-line px-6 py-24 sm:px-12 sm:py-32"
-             aria-labelledby="gift-title">
-      <div class="gift-credits mx-auto max-w-3xl">
-        <p class="cinema-eyebrow">06 / Dopo i titoli di coda</p>
-        <div class="gift-stars" aria-hidden="true">★ ★ ★</div>
-        <h2 id="gift-title" class="font-serif text-4xl leading-tight tracking-tight sm:text-6xl">{{
-            wedding.gift.title
-          }}</h2>
-        <p class="mx-auto mt-7 max-w-lg text-sm leading-7 text-[#f5f2e9]/80">{{ wedding.gift.message }}</p>
-        <dl class="gift-cast">
-          <div>
-            <dt>Protagonisti</dt>
-            <dd>{{ wedding.names }}</dd>
-          </div>
-          <div>
-            <dt>Con la partecipazione straordinaria di</dt>
-            <dd>Tutti voi</dd>
-          </div>
-          <div>
-            <dt>Le prossime scene</dt>
-            <dd>Ancora tutte da vivere</dd>
-          </div>
-        </dl>
-        <div v-if="wedding.gift.iban && wedding.gift.accountHolder" class="gift-bank">
-          <p class="ticket-kicker mb-5">Un pensiero per il nostro seguito</p>
-          <dl class="space-y-5">
-            <div>
-              <dt class="gift-bank-label">Intestatario</dt>
-              <dd class="mt-1 text-sm">{{ wedding.gift.accountHolder }}</dd>
-            </div>
-            <div>
-              <dt><label for="gift-iban" class="gift-bank-label">IBAN</label></dt>
-              <dd><input id="gift-iban" ref="ibanInput" :value="wedding.gift.iban" readonly spellcheck="false"
-                         class="gift-iban"/></dd>
-            </div>
-            <div v-if="wedding.gift.reference">
-              <dt class="gift-bank-label">Causale</dt>
-              <dd class="mt-1 text-sm leading-6">{{ wedding.gift.reference }}</dd>
-            </div>
-          </dl>
-          <button type="button"
-                  class="mt-6 inline-flex min-h-12 items-center justify-center border border-[#697252] px-6 py-3 text-xs uppercase tracking-widest hover:bg-[#e0e2d2] focus-visible:outline-[#697252]"
-                  @click="copyGiftIban">Copia IBAN <span class="ml-3" aria-hidden="true">↗</span></button>
-          <p role="status" aria-live="polite" class="mt-3 text-sm leading-6">{{ giftCopyStatus }}</p>
-        </div>
-        <p v-else class="gift-placeholder">{{ wedding.gift.placeholder }}</p>
-        <p class="mt-10 font-serif text-2xl italic text-[#c0c7a8]">Il bello deve ancora venire.</p>
-      </div>
+    <section class="rsvp-section"><div class="page-width rsvp-grid"><div><p class="eyebrow">Il cast è quasi al completo</p><h2>Ci sei anche tu?</h2><p>Le nostre persone preferite, tutte nella stessa puntata.</p><p class="muted">{{ wedding.rsvpDeadline ? `Conferma entro il ${wedding.rsvpDeadline}.` : 'Presto ti diremo entro quando confermare.' }}</p><div class="rsvp-motif" aria-hidden="true">J<span>+</span>A<span>+</span>VOI</div></div><PresenceForm /></div></section>
+    <section id="regalo" class="section page-width gift-section" aria-labelledby="gift-title"><p class="eyebrow">La storia continua</p><h2 id="gift-title">{{ wedding.gift.title }}</h2><p>{{ wedding.gift.message }}</p>
+      <div v-if="wedding.gift.iban && wedding.gift.accountHolder" class="gift-bank"><dl><div><dt>Intestatario</dt><dd>{{ wedding.gift.accountHolder }}</dd></div><div><dt><label for="gift-iban">IBAN</label></dt><dd><input id="gift-iban" ref="ibanInput" :value="wedding.gift.iban" readonly spellcheck="false" /></dd></div><div v-if="wedding.gift.reference"><dt>Causale</dt><dd>{{ wedding.gift.reference }}</dd></div></dl><button type="button" class="button button-primary" @click="copyGiftIban">Copia IBAN</button><p role="status" aria-live="polite">{{ giftCopyStatus }}</p></div>
+      <p v-else class="muted gift-placeholder">{{ wedding.gift.placeholder }}</p>
     </section>
   </main>
-  <footer class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 px-6 py-8 sm:px-12">
-    <p class="font-serif text-lg italic">{{ wedding.names }}</p>
-    <p class="text-[10px] uppercase tracking-[0.18em] text-olive">Ci vediamo in sala.</p>
-    <a href="#" class="inline-flex min-h-11 items-center text-xs text-olive">Torna su ↑</a>
-  </footer>
+  <footer class="site-footer page-width"><a href="#" class="brand">{{ wedding.series.brand }}</a><p>{{ wedding.names }} · Una storia che continua.</p><a href="#" class="text-link">Torna all’inizio ↑</a></footer>
 </template>

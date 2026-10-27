@@ -2,41 +2,31 @@
   {
     "id": "faq-1",
     "question": "Posso portare qualcuno?",
-    "subtitle": "",
-    "answerHtml": "<p>L’invito è riservato alle persone indicate. Per qualsiasi dubbio, scrivici prima di confermare.</p>",
-    "showtime": "15:30",
-    "seatsLeft": 42
+    "subtitle": "I profili di questa stagione",
+    "answerHtml": "<p>L’invito è riservato alle persone indicate. Per qualsiasi dubbio, scrivici prima di confermare.</p>"
   },
   {
     "id": "faq-2",
     "question": "Dove trovo orari e indicazioni?",
-    "subtitle": "Tutti i dettagli per raggiungerci",
-    "answerHtml": "<p>Aggiorneremo il programma e la sezione Info utili con orari, indirizzi e mappe appena saranno confermati.</p>",
-    "showtime": "16:15",
-    "seatsLeft": 28
+    "subtitle": "La guida agli episodi",
+    "answerHtml": "<p>Aggiorneremo il programma e la sezione Info utili con orari, indirizzi e mappe appena saranno confermati.</p>"
   },
   {
     "id": "faq-3",
     "question": "Come ci vestiamo?",
-    "subtitle": "Qualche consiglio per la giornata",
-    "answerHtml": "<p>Mettetevi qualcosa che vi faccia stare bene. Aggiungeremo qui eventuali indicazioni utili.</p>",
-    "showtime": "17:00",
-    "seatsLeft": 56
+    "subtitle": "Il look per la première",
+    "answerHtml": "<p>Mettetevi qualcosa che vi faccia stare bene. Aggiungeremo qui eventuali indicazioni utili.</p>"
   },
   {
     "id": "faq-4",
     "question": "Allergie o esigenze alimentari?",
-    "subtitle": "Aiutaci a prenderci cura di tutti",
-    "answerHtml": "<p>Fatecelo sapere quando confermate la presenza, così potremo organizzarci al meglio.</p>",
-    "showtime": "18:30",
-    "seatsLeft": 19
+    "subtitle": "Preferenze di partecipazione",
+    "answerHtml": "<p>Fatecelo sapere quando confermate la presenza, così potremo organizzarci al meglio.</p>"
   },
   {
     "id": "faq-5",
     "question": "Entro quando dobbiamo confermare?",
-    "subtitle": "La conferma del tuo posto al tavolo",
-    "answerHtml": "<p>Vi faremo sapere qui la data e come confermare la vostra presenza.</p>",
-    "showtime": "21:00",
-    "seatsLeft": 34
+    "subtitle": "Prima dell’inizio della stagione",
+    "answerHtml": "<p>Vi faremo sapere qui la data e come confermare la vostra presenza.</p>"
   }
 ]

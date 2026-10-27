@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#20271f">
+    <meta name="theme-color" content="#141414">
     <script>
       let theme = 'dark'
       try {
         if (localStorage.getItem('wedding-theme') === 'light') theme = 'light'
       } catch { /* Use the default theme when storage is unavailable. */ }
       document.documentElement.dataset.theme = theme
-      document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#20271f' : '#f5f2e9'
+      document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#141414' : '#f6f3ed'
     </script>
     <meta name="description" content="Jacopo e Agnese si sposano. Tutte le informazioni per festeggiare insieme.">
-    <title>Jacopo & Agnese — Ci sposiamo</title>
+    <title>Jacopo & Agnese — La nostra prossima stagione</title>
   </head>
   <body>
     <div id="app"></div>
