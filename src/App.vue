@@ -127,14 +127,12 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
             <CinemaPoster :title-id="`screening-${index}`" :title="event.title" :poster="event.poster" :tagline="event.tagline" :billing="wedding.names">
               Atto {{ String(index + 1).padStart(2, '0') }} · Solo per questa prima
             </CinemaPoster>
-            <div class="screening-time"><span>Inizio</span><strong>{{ event.time || 'Orario in arrivo' }}</strong></div>
-            <div class="screening-info">
-              <p class="text-sm font-medium">{{ event.venue || wedding.location || 'Luogo da annunciare' }}</p>
-              <p v-if="event.address" class="mt-2 text-sm text-ink/65">{{ event.address }}</p>
-              <p class="mt-3 text-sm leading-7 text-ink/65">{{ event.note }}</p>
-              <a v-if="event.mapsUrl" :href="event.mapsUrl" target="_blank" rel="noopener noreferrer"
-                 class="mt-4 inline-flex min-h-11 items-center border-b border-olive/50 text-xs hover:text-olive">Apri la mappa ↗</a>
-            </div>
+            <dl class="screening-details">
+              <div><dt>Inizio</dt><dd>{{ event.time || 'Orario in arrivo' }}</dd></div>
+              <div><dt>Sala</dt><dd>{{ event.venue || wedding.location || 'Luogo da annunciare' }}<span v-if="event.address" class="mt-1 block font-normal">{{ event.address }}</span></dd></div>
+            </dl>
+            <a v-if="event.mapsUrl" :href="event.mapsUrl" target="_blank" rel="noopener noreferrer"
+               class="mt-4 inline-flex min-h-11 items-center border-b border-olive/50 text-xs hover:text-olive">Apri la mappa ↗</a>
           </article>
         </li>
       </ol>

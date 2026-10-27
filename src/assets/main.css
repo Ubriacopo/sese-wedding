@@ -63,10 +63,10 @@
   .poster-toast { color: #f5f2e9; background-color: #626b4e; }
   .poster-dinner { color: #343c32; background-color: #cbd0b6; }
   .poster-party { color: #e5dfc7; background-color: #343c32; }
-  .screening-time { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .5rem; padding: .9rem .75rem; border: 1px solid var(--color-olive); margin-top: .75rem; color: var(--color-olive); font-family: 'Courier New', monospace; }
-  .screening-time > span { font-size: .6rem; text-transform: uppercase; letter-spacing: .15em; }
-  .screening-time strong { font-size: .8rem; font-weight: 700; }
-  .screening-info { padding: 1.25rem .25rem 0; }
+  .screening-details { display: grid; gap: .75rem; padding: .9rem .75rem; border: 1px solid var(--color-olive); margin-top: .75rem; color: var(--color-olive); font-family: 'Courier New', monospace; }
+  .screening-details > div { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; gap: .75rem; }
+  .screening-details dt { font-size: .6rem; text-transform: uppercase; letter-spacing: .15em; }
+  .screening-details dd { text-align: right; font-size: .8rem; line-height: 1.6; font-weight: 700; }
   @media (min-width: 640px) {
     .screenings { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3rem 2rem; }
   }

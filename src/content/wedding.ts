@@ -4,14 +4,14 @@ import { upcomingMovies } from './movies'
 export const wedding = {
   names: 'Jacopo & Agnese',
   date: '28 maggio 2027',
-  location: 'Tenuta Cascina Canova, Bergamo',
+  location: 'Tenuta Cascina Canova',
   rsvpEmail: '',
   rsvpDeadline: '',
   events: [
-    { title: 'La cerimonia', poster: 'ceremony', tagline: 'Una promessa per sempre', time: '', venue: '', address: '', mapsUrl: '', note: 'Il momento del sì. Presto tutti i dettagli per esserci.' },
-    { title: 'Un brindisi insieme', poster: 'toast', tagline: 'A noi. E a tutti voi.', time: '', venue: '', address: '', mapsUrl: '', note: 'Il primo brindisi, due chiacchiere e il tempo di ritrovarsi. I dettagli arriveranno presto.' },
-    { title: 'A tavola', poster: 'dinner', tagline: 'Le scene migliori, insieme', time: '', venue: '', address: '', mapsUrl: '', note: 'Poi ci si siede a tavola. E si vede dove ci porta la serata.' },
-    { title: 'I festeggiamenti', poster: 'party', tagline: 'Il gran finale lo scriviamo noi', time: '', venue: '', address: '', mapsUrl: '', note: 'Il dolce, la musica e ancora un po’ di tempo insieme. Il finale lo scriviamo con voi.' },
+    { title: 'La cerimonia', poster: 'ceremony', tagline: 'Una promessa per sempre', time: '11.00', venue: 'Chiesa della Ramera', address: '', mapsUrl: '' },
+    { title: 'Un brindisi insieme', poster: 'toast', tagline: 'A noi. E a tutti voi.', time: '12.30', venue: '', address: '', mapsUrl: '', note: 'Il primo brindisi, due chiacchiere e il tempo di ritrovarsi. I dettagli arriveranno presto.' },
+    { title: 'A tavola', poster: 'dinner', tagline: 'Le scene migliori, insieme', time: '14.00', venue: '', address: '', mapsUrl: '', note: 'Poi ci si siede a tavola. E si vede dove ci porta la serata.' },
+    { title: 'I festeggiamenti', poster: 'party', tagline: 'Il gran finale lo scriviamo noi', time: 'TBA', venue: '', address: '', mapsUrl: '', note: 'Il dolce, la musica e ancora un po’ di tempo insieme. Il finale lo scriviamo con voi.' },
   ],
   upcomingMovies,
   gift: {
