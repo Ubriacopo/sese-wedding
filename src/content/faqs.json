@@ -2,8 +2,8 @@
   {
     "id": "faq-1",
     "question": "Posso portare qualcuno?",
-    "subtitle": "Le persone comprese nel tuo invito",
-    "answerHtml": "<p>Il modulo permette di indicare le persone comprese nel tuo invito. Per qualsiasi dubbio, scrivici prima di confermare.</p>",
+    "subtitle": "",
+    "answerHtml": "<p>L’invito è riservato alle persone indicate. Per qualsiasi dubbio, scrivici prima di confermare.</p>",
     "showtime": "15:30",
     "seatsLeft": 42
   },
