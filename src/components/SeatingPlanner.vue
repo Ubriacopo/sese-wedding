@@ -228,11 +228,10 @@ function editTable(table?: DiningTable) {
 function selectPerson(person: Person) {
   if (performance.now() < suppressSeatClickUntil) return
   selectedPersonKey.value = person.key
-  panelOpen.value.table = true
   const currentTable = activeTables.value.find((table) => table.id === person.table_id)
   targetTable.value = currentTable ? String(currentTable.id) : ''
   targetSeat.value = currentTable ? String(person.seat_number) : ''
-  nextTick(() => assignmentHeading.value?.focus())
+  if (editingTable.value && panelOpen.value.table) nextTick(() => assignmentHeading.value?.focus())
 }
 
 function selectSeat(table: DiningTable, seat: number) {
@@ -549,6 +548,7 @@ watch(() => props.active, (active) => {
         <h2 id="seating-title" class="mt-3 font-serif text-3xl sm:text-4xl">Tavoli e posti</h2>
       </div>
       <div class="flex flex-wrap gap-2">
+        <button type="button" :class="buttonClass" :disabled="busy" @click="editTable()">Nuovo tavolo</button>
         <button ref="fullscreenButton" type="button" :class="buttonClass" :aria-pressed="fullscreen"
                 @click="setFullscreen(!fullscreen)">{{ fullscreen ? 'Esci da schermo intero' : 'Schermo intero' }}
         </button>
@@ -560,9 +560,9 @@ watch(() => props.active, (active) => {
     <ul class="mt-5 flex flex-wrap gap-3 text-xs" aria-label="Legenda risposte">
       <li v-for="(label, key) in statusLabels" :key="key" class="status-chip" :class="key">{{ label }}</li>
     </ul>
-    <p v-if="message" role="status" class="mt-4 text-sm text-olive">{{ message }}</p>
+    <p v-if="message" role="status" class="sr-only">{{ message }}</p>
     <p v-if="error" role="alert" class="mt-4 text-sm text-red-700">{{ error }}</p>
-    <p v-if="personDrag?.active" role="status" class="mt-3 text-sm">{{ dropHint }}</p>
+    <p v-if="personDrag?.active" role="status" class="sr-only">{{ dropHint }}</p>
     <div class="planner-workspace mt-6 min-w-0" :aria-busy="busy">
       <div class="planner-content min-w-0">
         <div class="flex flex-wrap items-center justify-between gap-3 border border-line bg-panel p-3 text-sm">
@@ -583,16 +583,17 @@ watch(() => props.active, (active) => {
                 <p v-if="!activeTables.length && loaded" class="p-8 text-sm text-olive">La sala è ancora vuota. Crea il
                   primo tavolo dal pannello.</p>
                 <article v-for="table in activeTables" :key="table.id" class="dining-table" :data-drop-table="table.id"
-                         :class="{ selected: selectedTableId === table.id, 'drop-table': dropTarget && dropTarget.table.id === table.id }"
+                         :class="{ 'drop-table': dropTarget && dropTarget.table.id === table.id }"
                          :style="{ left: `${table.x}px`, top: `${table.y}px` }" :aria-label="table.name">
-                  <button type="button" class="table-handle" :disabled="busy"
+                  <button type="button" class="table-edit" :disabled="busy" :aria-label="`Modifica ${table.name}`" :title="`Modifica ${table.name}`" @click.stop="editTable(table)">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z" /></svg>
+                  </button>
+                  <button type="button" class="table-center" :disabled="busy"
                           :aria-label="`Seleziona o trascina ${table.name}`" @click="selectTable(table)"
                           @pointerdown="startDrag($event, table)" @pointermove="dragTable" @pointerup="endDrag()"
-                          @pointercancel="endDrag(true)">{{ table.name }} <span aria-hidden="true">⠿</span></button>
-                  <button type="button" class="table-edit" :disabled="busy" :aria-label="`Modifica ${table.name}`" :title="`Modifica ${table.name}`" @click.stop="editTable(table)">✎</button>
-                  <div class="table-center"><span class="text-xs uppercase tracking-widest">Tavolo</span><strong
+                          @pointercancel="endDrag(true)"><span class="text-xs uppercase tracking-widest">Tavolo</span><strong
                       class="mt-2 block max-w-28 break-words font-serif text-lg leading-tight">{{ table.name }}</strong><span
-                      class="mt-2 block text-xs">{{ occupancy(table.id) }} / {{ table.capacity }} posti</span></div>
+                      class="mt-2 block text-xs">{{ occupancy(table.id) }} / {{ table.capacity }} posti</span></button>
                   <button v-for="seat in table.capacity" :key="seat" type="button" class="seat" :data-drop-seat="seat"
                           :class="[occupant(table.id, seat) ? status(occupant(table.id, seat)!) : 'empty', { chosen: targetTable === String(table.id) && targetSeat === String(seat), 'drop-seat': dropTarget && dropTarget.table.id === table.id && dropTarget.seat === seat }]"
                           :style="seatStyle(seat, table.capacity)" :disabled="busy"
@@ -602,18 +603,6 @@ watch(() => props.active, (active) => {
                           @lostpointercapture="cancelPersonDrag" @click="selectSeat(table, seat)">
                     <span>{{ occupant(table.id, seat) ? initials(occupant(table.id, seat)!) : seat }}</span>
                     <span v-if="occupant(table.id, seat)" class="seat-name" :class="{ 'seat-name-below': Math.sin((seat - 1) / table.capacity * Math.PI * 2 - Math.PI / 2) >= 0 }" aria-hidden="true">{{ occupant(table.id, seat)!.name }}</span>
-                    <span class="seat-tooltip" aria-hidden="true">
-                    <template v-if="occupant(table.id, seat)">
-                      <strong>{{ occupant(table.id, seat)!.name }}{{
-                          occupant(table.id, seat)!.companion ? ' (+1)' : ''
-                        }}</strong>
-                      <span>{{
-                          occupant(table.id, seat)!.family_name
-                        }} · {{ statusLabels[status(occupant(table.id, seat)!)] }}</span>
-                    </template>
-                    <strong v-else>Posto libero</strong>
-                    <span>{{ table.name }} · Posto {{ seat }}</span>
-                  </span>
                   </button>
                 </article>
               </div>
@@ -659,7 +648,7 @@ watch(() => props.active, (active) => {
               <p v-if="loaded && !visiblePeople.length" class="mt-4 text-sm">Nessuna persona trovata.</p>
             </div>
           </aside>
-          <aside ref="tablePanel" class="floating-panel table-panel" :style="panelStyle('table')"
+          <aside v-show="editingTable && panelOpen.table" ref="tablePanel" class="floating-panel table-panel" :style="panelStyle('table')"
                  aria-label="Modifica tavoli e assegnazioni">
             <div class="panel-bar">
               <button type="button" class="panel-handle"
@@ -670,9 +659,9 @@ watch(() => props.active, (active) => {
               </button>
               <button type="button" class="panel-toggle" aria-label="Nuovo tavolo" title="Nuovo tavolo" @click="editTable()">+</button>
               <button v-if="selectedTable && !selectedTable.archived" type="button" class="panel-toggle" :disabled="busy" :aria-label="`Rimuovi ${selectedTable.name}`" :title="`Rimuovi ${selectedTable.name}`" @click="archiveTable(selectedTable, true)">🗑</button>
-              <button type="button" class="panel-toggle" :aria-expanded="panelOpen.table"
-                      aria-controls="table-panel-content" @click="panelOpen.table = !panelOpen.table">
-                {{ panelOpen.table ? '−' : '+' }}<span class="sr-only"> {{ panelOpen.table ? 'Chiudi' : 'Apri' }} pannello tavoli</span>
+              <button type="button" class="panel-toggle" aria-label="Chiudi pannello tavoli"
+                      aria-controls="table-panel-content" @click="editingTable = false; panelOpen.table = false">
+                <span aria-hidden="true">×</span>
               </button>
             </div>
             <div v-show="panelOpen.table" id="table-panel-content" class="panel-body space-y-4 p-4">
@@ -929,39 +918,23 @@ watch(() => props.active, (active) => {
   border-radius: 12px;
 }
 
-.dining-table:has(.seat:hover), .dining-table:has(.seat:focus-visible) {
-  z-index: 5;
-}
-
-.dining-table.selected {
-  border-color: var(--color-olive);
-  background: color-mix(in srgb, var(--color-panel) 45%, transparent);
-}
-
-.table-handle {
+.table-edit {
   position: absolute;
   z-index: 1;
   top: 0;
-  left: 30px;
-  width: 196px;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: .5rem;
-  padding: 0 12px;
-  border: 1px solid var(--color-line);
-  background: var(--color-panel);
-  cursor: grab;
-  touch-action: none;
-  font-size: 12px;
-  overflow-wrap: anywhere;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--color-olive);
+  cursor: pointer;
 }
-
-.table-handle:active {
-  cursor: grabbing;
-}
-.table-edit { position: absolute; z-index: 1; top: 0; right: 30px; width: 44px; min-height: 44px; border: 1px solid var(--color-line); background: var(--color-panel); font-size: 1.1rem; }
+.table-edit:hover { background: var(--color-panel); }
+.table-edit:disabled { opacity: .5; cursor: default; }
+.table-center { cursor: grab; touch-action: none; }
+.table-center:active { cursor: grabbing; }
 
 .table-center {
   position: absolute;
@@ -994,44 +967,6 @@ watch(() => props.active, (active) => {
 
 .seat-name { position: absolute; left: 50%; bottom: calc(100% + 2px); transform: translateX(-50%); max-width: 7rem; color: var(--color-ink); font-size: .65rem; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 0 3px var(--color-paper), 0 0 5px var(--color-paper); pointer-events: none; }
 .seat-name-below { top: calc(100% + 2px); bottom: auto; }
-.seat-tooltip {
-  visibility: hidden;
-  position: absolute;
-  z-index: 10;
-  left: 50%;
-  bottom: calc(100% + .5rem);
-  width: max-content;
-  max-width: 14rem;
-  min-width: 9rem;
-  transform: translateX(-50%);
-  padding: .6rem .75rem;
-  border: 1px solid var(--color-olive);
-  background: var(--color-paper);
-  color: var(--color-ink);
-  box-shadow: 0 4px 14px #0003;
-  font-size: .75rem;
-  font-weight: 400;
-  line-height: 1.45;
-  text-align: left;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  pointer-events: none;
-}
-
-.seat-tooltip strong, .seat-tooltip span {
-  display: block;
-}
-
-.seat-tooltip strong {
-  font-weight: 700;
-}
-
-.seat-tooltip span {
-  margin-top: .2rem;
-}
-
-.seat:hover .seat-tooltip, .seat:focus-visible .seat-tooltip { visibility: visible; }
-
 .empty {
   background: var(--color-paper);
   color: var(--color-olive);
