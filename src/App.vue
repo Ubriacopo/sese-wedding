@@ -139,11 +139,11 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
         </div>
         <div class="programme-banner"><span>In cartellone</span><span>{{ wedding.names }} · Proiezione unica</span>
         </div>
-        <p class="mb-3 text-xs text-olive sm:hidden" aria-hidden="true">Scorri per vedere gli altri momenti →</p>
-        <ol class="screenings" tabindex="0" aria-label="Programma della giornata">
+        <ol class="screenings" aria-label="Programma della giornata">
           <li v-for="(event, index) in wedding.events" :key="event.title" class="screening">
-            <article :aria-labelledby="`screening-${index}`">
-              <CinemaPoster :title-id="`screening-${index}`" :title="event.title" :poster="event.poster"
+            <article :aria-label="event.title">
+              <h3 class="font-serif text-2xl text-olive sm:hidden">{{ event.title }}</h3>
+              <CinemaPoster class="hidden sm:block" :title-id="`screening-${index}`" :title="event.title" :poster="event.poster"
                             :tagline="event.tagline" :billing="wedding.names">
                 Atto {{ String(index + 1).padStart(2, '0') }} · Solo per questa prima
               </CinemaPoster>
@@ -237,14 +237,14 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
           biglietto ↗</a></footer>
       </div>
     </section>
-    <section id="presenza" class="cinema-foyer flex items-center px-6 py-24 sm:px-12 sm:py-28">
-      <div class="mx-auto grid w-full max-w-6xl items-start gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
+    <section id="presenza" class="cinema-foyer flex items-center px-6 py-8 max-sm:min-h-0 sm:px-12 sm:py-28">
+      <div class="mx-auto grid w-full max-w-6xl items-start gap-6 sm:gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
         <div><p class="text-[10px] uppercase tracking-[0.22em] text-[#f5f2e9]/70">05 / La biglietteria</p>
-          <h2 class="mt-6 font-serif text-6xl tracking-tight sm:text-7xl">Ci sarai?</h2>
-          <p class="mt-6 max-w-md text-sm leading-7 text-[#f5f2e9]/80">La compagnia è la parte più bella.<br>{{
+          <h2 class="mt-3 font-serif text-5xl tracking-tight sm:mt-6 sm:text-7xl">Ci sarai?</h2>
+          <p class="mt-3 max-w-md text-sm leading-6 text-[#f5f2e9]/80 sm:mt-6 sm:leading-7">La compagnia è la parte più bella.<br>{{
               wedding.rsvpDeadline ? `Conferma entro il ${wedding.rsvpDeadline}.` : 'Presto ti diremo entro quando confermare.'
             }}</p>
-          <div class="mt-10 ticket-caption"><span aria-hidden="true">✳</span><span class="font-serif text-xl italic">Questa prima è anche tua.</span>
+          <div class="mt-4 ticket-caption sm:mt-10"><span aria-hidden="true">✳</span><span class="font-serif text-xl italic">Questa prima è anche tua.</span>
           </div>
         </div>
         <PresenceForm/>

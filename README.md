@@ -12,13 +12,17 @@ The cinema programme uses `events` in `src/content/wedding.ts`. Event stages are
 
 ## RSVP and personal invitation links
 
+The RSVP form is public. Guests enter any number of named people (up to 100 per group), with attendance for each. Submitting creates the family, guests and responses in the dashboard, using the first person's name as the group label. Personal links remain optional: they load an existing family and allow additional named members to be saved to that family. Responses can be edited on the same page after saving.
+
+Apply `20261109000006_public_rsvp.sql` before deploying this frontend. The new public registration RPC validates input and saves the whole group atomically.
+
 Each family has exactly one invitation link, including families with just one person. Named families see their family name, the list of guests (for example “Famiglia Murelli: Chiara e Francesco +1”), and attendance choices for each person. Headcount families see their family name and **Confermiamo per:** with a number input. Anyone with the link can view and update that family’s response, so share it privately. The cinema seat and barcode on the guest ticket remain illustrative and separate from the admin seating plan.
 
 ### Set up Supabase
 
-1. Create a Supabase project. In its SQL editor, run all SQL migrations in `supabase/migrations/` in filename order, once each. These create families, guests, invitations, responses and token-scoped functions. The table has row level security enabled and no public table access; the functions validate inputs and operate only on the supplied token.
+1. Create a Supabase project. In its SQL editor, run all SQL migrations in `supabase/migrations/` in filename order, once each. These create families, guests, invitations, responses and token-scoped functions. The table has row level security enabled and no public table access; the functions validate inputs; public registration creates a new group, while updates require its token.
 2. Copy `.env.example` to `.env.local`, then set `VITE_SUPABASE_URL` to the project URL and `VITE_SUPABASE_PUBLISHABLE_KEY` to the project publishable key (a legacy anon key also works). These are public browser settings. Never use a secret or service role key here.
-3. Restart the development server. The RSVP form appears only after a personal invitation token is validated by Supabase. Missing or invalid invitation links show the fully booked message directly on the green section background, with no ticket frame, inputs, or submit button. A personal link opened without backend settings reports that the service is unavailable.
+3. Restart the development server. The RSVP form is always available. Valid personal links prefill the existing family; missing or invalid tokens show the public registration form. Supabase settings are required to save responses.
 4. For GitHub Pages, add the same two values as repository variables under **Settings → Secrets and variables → Actions → Variables**, then redeploy. Vite embeds them at build time. Until both variables are configured, the deployed form cannot save responses.
 
 ### Manage guests and responses
@@ -28,7 +32,7 @@ Open `/sese-wedding/dashboard/` on the deployed site (or `/sese-wedding/dashboar
 Use **Crea una famiglia** to enter the family name and choose how it responds:
 
 - **Per ciascun membro nominativo**: enter one name per line, including a single name for an individual guest. The ticket lists those names and collects attendance per member. You can add another member later without changing the family link.
-- **Con il numero di persone**: enter a private maximum (1–100). Guests enter a whole number of attendees, including 0 to decline. The maximum is enforced by the server and omitted from the guest API response, input attributes, labels, and validation messages. It is visible only in the authenticated admin list. The chosen count is saved and can be edited using the same link.
+- **Con il numero di persone**: enter a private maximum (1–100). Guests enter a whole number of attendees, including 0 to decline. The initial capacity grows when a public RSVP confirms more people, creating additional guest slots for seating. The capacity is omitted from the guest API response, input attributes, labels, and validation messages. It is visible only in the authenticated admin list. The chosen count is saved and can be edited using the same link.
 
 Each family has the independent boolean **Consenti +1**, disabled by default. The companion field appears only when enabled and someone is attending. For headcount families, a permitted +1 is additional to the private maximum. Disabling the flag removes the saved companion and frees their seat. The attendance total counts the companion once.
 
@@ -40,7 +44,7 @@ To revoke a family link, set its invitation’s `revoked_at` to `now()`. To repl
 
 The token is an access credential: anyone with the link can view and edit the associated response. Share it privately. The site uses a no-referrer policy to avoid passing it to linked sites. An invitation link does not prove the recipient's identity.
 
-`?invite=<token>#presenza` determines the invitation and loads any saved response. Name and surname parameters do not unlock the form. The public fully booked message is configured in `wedding.rsvpUnavailable` in `src/content/wedding.ts`. Server-side validation limits names to 160 characters and notes to 1,000 characters. A failed save leaves the form visible so guests can retry; a successful save plays the ticket animation.
+`?invite=<token>#presenza` optionally loads an existing family and its saved response. Guests can also register without a token. Names are limited to 160 characters and notes to 1,000 characters. Failed saves leave the form available for retry; successful saves play the ticket animation.
 
 Edit `src/content/faqs.json` to add, remove or reorder FAQs. Each entry has a unique `id` (also used for its anchor), a plain-text `question`, an optional plain-text `subtitle` (omit it or leave it empty to hide it), and an `answerHtml` string. Answers render as HTML, so you can add paragraphs, links, lists and Tailwind classes. Keep this HTML authored in the repository; it is rendered directly without sanitization. Escape double quotes inside JSON strings, for example:
 

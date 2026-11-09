@@ -10,6 +10,10 @@ const fragmentParams = new URLSearchParams(window.location.hash.split('?')[1]?.s
 const form = reactive({ count: null as number | null, notes: '', bringCompanion: false, companionName: '' })
 const byHeadcount = ref(false)
 const allowPlusOne = ref(false)
+let nextPersonId = 0
+const addedPeople = ref([{ id: nextPersonId++, name: '', attending: '' }])
+const loadedInvitation = ref(false)
+const responseToken = ref('')
 const familyName = ref('')
 const members = ref<{ guest_id: number, guest_name: string, attending: string }[]>([])
 const familyTitle = computed(() => /^famiglia\b/i.test(familyName.value) ? familyName.value : `Famiglia ${familyName.value}`)
@@ -17,17 +21,17 @@ const familySummary = computed(() => {
   const names = new Intl.ListFormat('it', { style: 'long', type: 'conjunction' }).format(members.value.map((member) => member.guest_name))
   return `${familyTitle.value}${names ? `: ${names}` : ''}${allowPlusOne.value ? ' +1' : ''}`
 })
-const anyoneAttending = computed(() => byHeadcount.value ? Number(form.count) > 0 : members.value.some((member) => member.attending === 'yes'))
+const anyoneAttending = computed(() => byHeadcount.value ? Number(form.count) > 0 : members.value.some((member) => member.attending === 'yes') || addedPeople.value.some((person) => person.attending === 'yes'))
 const invitationToken = invitationParams.get('invite') ?? fragmentParams.get('invite') ?? ''
 const hasInvitationToken = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(invitationToken)
-const invitationState = ref<'closed' | 'loading' | 'ready' | 'error'>(hasInvitationToken ? 'loading' : 'closed')
+const invitationState = ref<'loading' | 'ready'>(hasInvitationToken ? 'loading' : 'ready')
 const formError = ref('')
 const isSubmitting = ref(false)
 
 onMounted(async () => {
   if (!hasInvitationToken) return
   if (!supabase) {
-    invitationState.value = 'error'
+    invitationState.value = 'ready'
     formError.value = 'Il servizio di conferma non è disponibile. Contatta gli sposi.'
     return
   }
@@ -35,9 +39,12 @@ onMounted(async () => {
     const { data, error } = await supabase.rpc('get_invitation', { invitation_token: invitationToken })
     if (error) throw error
     if (!data) {
-      invitationState.value = 'closed'
+      invitationState.value = 'ready'
       return
     }
+    loadedInvitation.value = true
+    responseToken.value = invitationToken
+    addedPeople.value = []
     byHeadcount.value = data.by_headcount === true
     form.count = data.confirmed_count ?? null
     allowPlusOne.value = data.allow_plus_one === true
@@ -51,7 +58,7 @@ onMounted(async () => {
     form.notes = data.notes ?? ''
     invitationState.value = 'ready'
   } catch {
-    invitationState.value = 'error'
+    invitationState.value = 'ready'
     formError.value = 'Impossibile caricare l’invito. Riprova più tardi.'
   }
 })
@@ -72,12 +79,18 @@ const choiceClass = 'flex min-h-11 cursor-pointer items-center gap-2 border bord
 const radioClass = 'size-4 shrink-0 accent-olive' 
 
 async function submitPresence() {
-  if (ticketReleaseCount.value || isSubmitting.value || invitationState.value !== 'ready' || !supabase) return
+  if (ticketReleaseCount.value || isSubmitting.value || invitationState.value !== 'ready') return
+  if (!supabase) {
+    formError.value = 'Il servizio di conferma non è disponibile. Contatta gli sposi.'
+    return
+  }
   formError.value = ''
   isSubmitting.value = true
   try {
-    const { data, error } = await supabase.rpc('submit_family_response', {
-      invitation_token: invitationToken,
+    const { data, error } = await supabase.rpc('submit_open_response', {
+      invitation_token: responseToken.value || null,
+      family_name: familyName.value.trim() || addedPeople.value[0]?.name.trim() || '',
+      added_people: addedPeople.value.map((person) => ({ guest_name: person.name.trim(), attending: person.attending === 'yes' })),
       confirmed_count: byHeadcount.value ? form.count : null,
       guest_notes: form.notes.trim(),
       companion_name: allowPlusOne.value && anyoneAttending.value && form.bringCompanion ? form.companionName.trim() : null,
@@ -85,10 +98,17 @@ async function submitPresence() {
     })
     if (error) throw error
     if (!data) {
-      invitationState.value = 'error'
+      invitationState.value = 'ready'
       formError.value = 'Questo link di invito non è più valido. Contatta gli sposi.'
       return
     }
+    familyName.value = data.family_name
+    responseToken.value = data.token
+    loadedInvitation.value = true
+    members.value = data.members.map((member: { guest_id: number, guest_name: string, attending: boolean }) => ({
+      ...member, attending: member.attending ? 'yes' : 'no',
+    }))
+    addedPeople.value = []
   } catch (cause) {
     const requestError = cause as { code?: string }
     formError.value = byHeadcount.value && requestError.code === '22023'
@@ -105,31 +125,21 @@ async function submitPresence() {
       code: String(Math.floor(Math.random() * 1000000)).padStart(6, '0'),
     }
   }
-  status.value = 'La tua risposta è stata salvata. Puoi modificarla usando questo stesso link.'
+  status.value = 'La tua risposta è stata salvata. Puoi modificarla da questa pagina.'
   ticketReleaseCount.value += 1
   nextTick(() => thankYouHeading.value?.focus())
 }
 </script>
 
 <template>
-  <section v-if="invitationState === 'closed'" class="ticket-scene" aria-labelledby="closed-screening-title">
-    <div class="flex min-h-72 flex-col items-center justify-center px-4 py-10 text-center text-[#f5f2e9] sm:min-h-96">
-      <h3 id="closed-screening-title" lang="en" class="max-w-md font-serif text-4xl leading-tight sm:text-5xl">{{ wedding.rsvpUnavailable.title }}</h3>
-      <p lang="en" class="mt-5 text-sm leading-7">{{ wedding.rsvpUnavailable.message }}</p>
-    </div>
-    <footer class="cinema-ticket ticket-stub" aria-hidden="true">
-      <div class="ticket-stub-copy"><span class="ticket-kicker">Conserva l’emozione</span><p>Una prima. Insieme.</p></div>
-      <span class="ticket-stamp">J &amp; A<br>★</span>
-    </footer>
-  </section>
-  <section v-else-if="invitationState !== 'ready'" class="ticket-scene" :aria-busy="invitationState === 'loading'" aria-labelledby="unavailable-ticket-title">
+  <section v-if="invitationState !== 'ready'" class="ticket-scene" aria-busy="true" aria-labelledby="unavailable-ticket-title">
     <div class="cinema-ticket ticket-upper text-ink">
       <header class="ticket-header">
         <p class="ticket-kicker">{{ wedding.names }}</p>
         <div class="ticket-meta mt-3"><span>La prima · {{ wedding.date || 'Data in arrivo' }}</span><span>Proiezione unica</span></div>
       </header>
       <div class="px-3 py-8 text-center sm:py-12" role="status">
-          <h3 id="unavailable-ticket-title" class="font-serif text-3xl">{{ invitationState === 'loading' ? 'Il tuo biglietto' : 'Invito non disponibile' }}</h3>
+          <h3 id="unavailable-ticket-title" class="font-serif text-3xl">{{ 'Il tuo biglietto' }}</h3>
           <p class="mt-5 text-sm leading-7">{{ invitationState === 'loading' ? 'Caricamento invito…' : formError }}</p>
       </div>
     </div>
@@ -153,7 +163,7 @@ async function submitPresence() {
       <div class="ticket-meta"><span>La prima · {{ wedding.date || 'Data in arrivo' }}</span><span>Invito speciale</span></div>
     </header>
     <div class="ticket-body">
-      <p class="font-serif text-lg leading-7">{{ familySummary }}</p>
+      <p v-if="loadedInvitation" class="font-serif text-lg leading-7">{{ familySummary }}</p>
       <label v-if="byHeadcount" class="block">Confermiamo per:
         <input v-model.number="form.count" :class="fieldClass" class="mt-2" type="number" name="confirmed-count" min="0" step="1" required>
         <span class="mt-2 block text-xs leading-5">Indica il numero di persone presenti. Se non potrete esserci, inserisci 0.</span>
@@ -166,6 +176,17 @@ async function submitPresence() {
             <label :class="choiceClass"><input v-model="member.attending" :class="radioClass" type="radio" :name="`member-${member.guest_id}`" value="no" required> Non ci sarà</label>
           </div>
         </fieldset>
+      </template>
+      <template v-if="!byHeadcount">
+        <fieldset v-for="(person, index) in addedPeople" :key="person.id" :aria-label="person.name.trim() || 'Nome e cognome'" class="min-w-0">
+          <label><span class="sr-only">Nome e cognome *</span><input v-model="person.name" :class="fieldClass" class="mb-2" placeholder="Nome e cognome *" :name="`person-name-${person.id}`" maxlength="160" pattern=".*\S.*" required></label>
+          <div class="grid grid-cols-2 gap-2">
+            <label :class="choiceClass"><input v-model="person.attending" :class="radioClass" type="radio" :name="`person-${person.id}`" value="yes" required> Ci sarà</label>
+            <label :class="choiceClass"><input v-model="person.attending" :class="radioClass" type="radio" :name="`person-${person.id}`" value="no" required> Non ci sarà</label>
+          </div>
+          <button v-if="loadedInvitation || addedPeople.length > 1" type="button" class="min-h-11 text-sm underline" @click="addedPeople.splice(index, 1)">Rimuovi persona</button>
+        </fieldset>
+        <button type="button" class="min-h-11 border border-olive px-3 py-2 text-sm" @click="addedPeople.push({ id: nextPersonId++, name: '', attending: '' })">Aggiungi una persona</button>
       </template>
       <div v-if="allowPlusOne && anyoneAttending" class="grid min-w-0 gap-2">
         <label :class="choiceClass"><input v-model="form.bringCompanion" :class="radioClass" type="checkbox"> Aggiungiamo un accompagnatore (+1)</label>
@@ -191,7 +212,7 @@ async function submitPresence() {
       </dl>
       <TicketBarcode v-if="ticketReleaseCount && anyoneAttending && cinemaSeat" :code="cinemaSeat.code" />
       <span class="ticket-stamp" aria-hidden="true">J &amp; A<br>★</span>
-      <span id="ticket-nominative-note" class="ticket-nominative-note block text-[0.65rem] leading-tight">* Il biglietto è riservato alla famiglia invitata e non è cedibile.</span>
+      <span id="ticket-nominative-note" class="ticket-nominative-note block text-[0.65rem] leading-tight">* Indica una risposta per ogni persona del gruppo.</span>
     </footer>
   </form>
 </template>

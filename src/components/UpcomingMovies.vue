@@ -85,7 +85,7 @@ watch(() => props.movies, async () => {
 .movie-library-label { font-family: 'Courier New', monospace; font-size: .6rem; text-transform: uppercase; letter-spacing: .12em; line-height: 1.7; color: var(--color-olive); }
 .movie-track { display: grid; grid-auto-flow: column; grid-auto-columns: 78%; gap: 1rem; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: var(--color-olive) transparent; padding: .5rem .25rem 1rem; }
 .movie-track:focus-visible { outline: 2px solid var(--color-olive); outline-offset: 4px; }
-.movie-card { min-width: 0; scroll-snap-align: start; background: var(--color-panel); border: 1px solid var(--color-line); }
+.movie-card { min-width: 0; scroll-snap-align: start; border-radius: 6px; overflow: hidden; background: var(--color-panel); border: 1px solid var(--color-line); }
 .movie-poster-stage { background: #252c23; }
 .movie-designed-poster, .movie-photo-poster { width: 100%; }
 .movie-designed-poster { padding: 0; border: 0; box-shadow: none; }
