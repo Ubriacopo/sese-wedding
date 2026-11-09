@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {onMounted, onUnmounted, ref} from 'vue'
 import PresenceForm from './components/PresenceForm.vue'
+import CinemaIntro from './components/CinemaIntro.vue'
 import CinemaPoster from './components/CinemaPoster.vue'
 import UpcomingMovies from './components/UpcomingMovies.vue'
 import {wedding} from './content/wedding'
@@ -76,6 +77,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
 </script>
 
 <template>
+  <CinemaIntro />
   <a href="#main"
      class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-paper focus:p-4">Vai al
     contenuto</a>
@@ -101,6 +103,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
   <main id="main" class="[overflow-wrap:anywhere]">
     <section
         class="cinema-poster mx-auto flex min-h-[560px] max-w-7xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6 sm:py-24 sm:min-h-[760px]">
+      <div class="viewfinder-rec" aria-hidden="true"><span></span> REC</div>
       <p :class="label" class="mb-10">Una storia d’amore · Un’unica prima</p>
       <p class="mb-5 font-serif text-xl italic sm:text-2xl">{{ wedding.names }}</p>
       <h1 class="font-serif text-[clamp(2.75rem,11.5vw,10rem)] leading-[0.95] tracking-[-0.065em]">Ci sposiamo<span
@@ -126,7 +129,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
     </section>
     <div class="programme-wallpaper programme-projector">
       <section id="giornata" class="mx-auto max-w-6xl px-6 py-16 sm:px-12 sm:py-32">
-        <div class="mb-8 flex flex-wrap items-end justify-between gap-6 sm:mb-14">
+        <div class="mobile-wallpaper-heading mb-8 flex flex-wrap items-end justify-between gap-6 sm:mb-14">
           <div><p :class="label" class="mb-5">01 / La programmazione del giorno</p>
             <h2 class="font-serif text-5xl tracking-tight sm:text-6xl">Oggi in sala</h2></div>
           <p class="max-w-xs text-sm leading-6 text-ink/65">{{ wedding.date || 'La data sarà annunciata presto.' }}<br>Quattro
@@ -168,7 +171,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
     <div class="programme-wallpaper">
       <section v-if="wedding.upcomingMovies.length" id="prossimamente"
                class="mx-auto max-w-6xl px-6 pt-12 pb-12 sm:px-12 sm:pt-16 sm:pb-16" aria-labelledby="upcoming-title">
-        <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div class="mobile-wallpaper-heading mobile-wallpaper-heading-upcoming mb-6 flex flex-wrap items-end justify-between gap-4">
           <div><p :class="label" class="mb-5">02 / Le prossime uscite</p>
             <h2 id="upcoming-title" class="font-serif text-4xl tracking-tight sm:text-5xl">Prossimamente</h2></div>
           <p class="max-w-xs text-sm leading-7 text-ink/65">Grandi emozioni, due protagonisti.<br>Il nostro cinema
@@ -245,7 +248,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
         <PresenceForm/>
       </div>
     </section>
-    <section id="regalo" class="programme-wallpaper border-b border-line px-6 py-24 sm:px-12 sm:py-32"
+    <section id="regalo" class="programme-wallpaper gift-wallpaper border-b border-line px-6 py-24 sm:px-12 sm:py-32"
              aria-labelledby="gift-title">
       <div class="gift-credits mx-auto max-w-3xl">
         <p class="cinema-eyebrow">06 / Dopo i titoli di coda</p>
