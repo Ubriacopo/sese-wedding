@@ -26,11 +26,14 @@ const unassignedOnly = ref(false)
 const selectedPersonKey = ref('')
 const assignmentHeading = ref<HTMLElement>()
 const selectedTableId = ref<number | null>(null)
+const editingTable = ref(false)
 const tableName = ref('')
 const capacity = ref(8)
 const targetTable = ref('')
 const targetSeat = ref('')
-const zoom = ref('1')
+const zoom = ref('fit')
+const editorWidth = ref(0)
+const effectiveZoom = computed(() => zoom.value === 'fit' ? Math.max(1, editorWidth.value / 1200) : Number(zoom.value))
 const floorScroll = ref<HTMLElement>()
 const cameraPanning = ref(false)
 let cameraDrag: { pointerId: number, x: number, y: number, scrollLeft: number, scrollTop: number } | undefined
@@ -39,7 +42,7 @@ const editor = ref<HTMLElement>()
 const peoplePanel = ref<HTMLElement>()
 const tablePanel = ref<HTMLElement>()
 const panelPositions = ref<Record<'people' | 'table', { x: number, y: number } | null>>({people: null, table: null})
-const panelOpen = ref({people: true, table: true})
+const panelOpen = ref({people: true, table: false})
 let panelDrag: {
   name: 'people' | 'table',
   pointerId: number,
@@ -159,17 +162,15 @@ const personDrag = ref<{
   y: number,
   active: boolean
 }>()
-const dropTarget = ref<{ table: DiningTable, seat: number | null } | 'unassigned'>()
+const dropTarget = ref<{ table: DiningTable, seat: number | null }>()
 let dragFrame = 0
 let suppressSeatClickUntil = 0
 const dropHint = computed(() => {
   if (!personDrag.value?.active) return ''
-  if (dropTarget.value === 'unassigned') return 'Rilascia per rimuovere l’assegnazione.'
   if (!dropTarget.value) return 'Trascina su un tavolo o su un posto libero.'
   return dropTarget.value.seat === null ? 'Tavolo pieno o posto occupato.' : `${dropTarget.value.table.name} · Posto ${dropTarget.value.seat}`
 })
 const activeTables = computed(() => tables.value.filter((table) => !table.archived))
-const archivedTables = computed(() => tables.value.filter((table) => table.archived))
 const selectedTable = computed(() => tables.value.find((table) => table.id === selectedTableId.value))
 const selectedPerson = computed(() => people.value.find((person) => person.key === selectedPersonKey.value))
 const destination = computed(() => activeTables.value.find((table) => table.id === Number(targetTable.value)))
@@ -212,10 +213,16 @@ function seatStyle(seat: number, count: number) {
 }
 
 function selectTable(table?: DiningTable) {
-  if (table) panelOpen.value.table = true
+  editingTable.value = false
   selectedTableId.value = table?.id ?? null
   tableName.value = table?.name ?? ''
   capacity.value = table?.capacity ?? 8
+}
+
+function editTable(table?: DiningTable) {
+  selectTable(table)
+  editingTable.value = true
+  panelOpen.value.table = true
 }
 
 function selectPerson(person: Person) {
@@ -297,6 +304,7 @@ async function saveTable() {
     })
     if (saveError) throw saveError
     selectedTableId.value = data
+    editingTable.value = false
   }, 'Tavolo salvato.')
 }
 
@@ -309,7 +317,7 @@ async function archiveTable(table: DiningTable, archived: boolean) {
     })
     if (archiveError) throw archiveError
     if (archived && selectedTableId.value === table.id) selectTable()
-  }, archived ? 'Tavolo archiviato. Puoi ripristinarlo qui sotto.' : 'Tavolo ripristinato.')
+  }, archived ? 'Tavolo rimosso.' : 'Tavolo ripristinato.')
 }
 
 async function assignPerson(personKey: string, tableId: number | null, seat: number | null) {
@@ -332,10 +340,6 @@ async function assign(unassign = false) {
 
 function findDropTarget(x: number, y: number) {
   const element = document.elementFromPoint(x, y)
-  if (element?.closest('[data-drop-unassigned]')) {
-    dropTarget.value = 'unassigned'
-    return
-  }
   const tableElement = element?.closest<HTMLElement>('[data-drop-table]')
   const table = activeTables.value.find((item) => item.id === Number(tableElement?.dataset.dropTable))
   if (!table || !personDrag.value) {
@@ -427,12 +431,11 @@ async function endPersonDrag(event: PointerEvent) {
     message.value = 'Spostamento annullato. Rilascia su un tavolo o su un posto libero.'
     return
   }
-  if (target !== 'unassigned' && target.seat === null) {
+  if (target.seat === null) {
     error.value = 'Il posto è occupato o il tavolo è pieno. Scegli un posto libero.'
     return
   }
-  if (target === 'unassigned') await assignPerson(current.person.key, null, null)
-  else await assignPerson(current.person.key, target.table.id, target.seat)
+  await assignPerson(current.person.key, target.table.id, target.seat)
 }
 
 function dragKeydown(event: KeyboardEvent) {
@@ -491,8 +494,8 @@ function startDrag(event: PointerEvent, table: DiningTable) {
 
 function dragTable(event: PointerEvent) {
   if (!drag) return
-  drag.table.x = Math.max(0, Math.min(900, Math.round(drag.x + (event.clientX - drag.clientX) / Number(zoom.value))))
-  drag.table.y = Math.max(0, Math.min(600, Math.round(drag.y + (event.clientY - drag.clientY) / Number(zoom.value))))
+  drag.table.x = Math.max(0, Math.min(900, Math.round(drag.x + (event.clientX - drag.clientX) / effectiveZoom.value)))
+  drag.table.y = Math.max(0, Math.min(600, Math.round(drag.y + (event.clientY - drag.clientY) / effectiveZoom.value)))
 }
 
 async function endDrag(cancelled = false) {
@@ -508,8 +511,10 @@ async function endDrag(cancelled = false) {
 }
 
 onMounted(() => {
-  if (window.matchMedia('(max-width: 639px)').matches) panelOpen.value.table = false
-  editorResizeObserver = new ResizeObserver(clampPanels)
+  editorResizeObserver = new ResizeObserver(() => {
+    editorWidth.value = editor.value?.clientWidth ?? 0
+    clampPanels()
+  })
   if (editor.value) editorResizeObserver.observe(editor.value)
   if (peoplePanel.value) editorResizeObserver.observe(peoplePanel.value)
   if (tablePanel.value) editorResizeObserver.observe(tablePanel.value)
@@ -558,11 +563,12 @@ watch(() => props.active, (active) => {
     <p v-if="message" role="status" class="mt-4 text-sm text-olive">{{ message }}</p>
     <p v-if="error" role="alert" class="mt-4 text-sm text-red-700">{{ error }}</p>
     <p v-if="personDrag?.active" role="status" class="mt-3 text-sm">{{ dropHint }}</p>
-    <div class="mt-6 min-w-0" :aria-busy="busy">
-      <div class="min-w-0">
+    <div class="planner-workspace mt-6 min-w-0" :aria-busy="busy">
+      <div class="planner-content min-w-0">
         <div class="flex flex-wrap items-center justify-between gap-3 border border-line bg-panel p-3 text-sm">
           <span>{{ activeTables.length }} tavoli · {{ unassignedCount }} persone da assegnare</span><label>Zoom <select
             v-model="zoom" class="min-h-11 border border-line bg-paper px-2">
+          <option value="fit">Adatta alla larghezza</option>
           <option value="0.5">50%</option>
           <option value="0.75">75%</option>
           <option value="1">100%</option>
@@ -572,28 +578,30 @@ watch(() => props.active, (active) => {
                aria-label="Pianta dei tavoli, scorribile in entrambe le direzioni" @pointerdown="startCameraPan"
                @pointermove="moveCamera" @pointerup="endCameraPan" @pointercancel="endCameraPan"
                @lostpointercapture="endCameraPan" @auxclick.middle.prevent>
-            <div :style="{ width: `${1200 * Number(zoom)}px`, height: `${900 * Number(zoom)}px` }">
-              <div class="floor-plan" :style="{ transform: `scale(${zoom})` }">
+            <div :style="{ width: `${1200 * effectiveZoom}px`, height: `${900 * effectiveZoom}px` }">
+              <div class="floor-plan" :style="{ transform: `scale(${effectiveZoom})` }">
                 <p v-if="!activeTables.length && loaded" class="p-8 text-sm text-olive">La sala è ancora vuota. Crea il
                   primo tavolo dal pannello.</p>
                 <article v-for="table in activeTables" :key="table.id" class="dining-table" :data-drop-table="table.id"
-                         :class="{ selected: selectedTableId === table.id, 'drop-table': dropTarget && dropTarget !== 'unassigned' && dropTarget.table.id === table.id }"
+                         :class="{ selected: selectedTableId === table.id, 'drop-table': dropTarget && dropTarget.table.id === table.id }"
                          :style="{ left: `${table.x}px`, top: `${table.y}px` }" :aria-label="table.name">
                   <button type="button" class="table-handle" :disabled="busy"
                           :aria-label="`Seleziona o trascina ${table.name}`" @click="selectTable(table)"
                           @pointerdown="startDrag($event, table)" @pointermove="dragTable" @pointerup="endDrag()"
                           @pointercancel="endDrag(true)">{{ table.name }} <span aria-hidden="true">⠿</span></button>
+                  <button type="button" class="table-edit" :disabled="busy" :aria-label="`Modifica ${table.name}`" :title="`Modifica ${table.name}`" @click.stop="editTable(table)">✎</button>
                   <div class="table-center"><span class="text-xs uppercase tracking-widest">Tavolo</span><strong
                       class="mt-2 block max-w-28 break-words font-serif text-lg leading-tight">{{ table.name }}</strong><span
                       class="mt-2 block text-xs">{{ occupancy(table.id) }} / {{ table.capacity }} posti</span></div>
                   <button v-for="seat in table.capacity" :key="seat" type="button" class="seat" :data-drop-seat="seat"
-                          :class="[occupant(table.id, seat) ? status(occupant(table.id, seat)!) : 'empty', { chosen: targetTable === String(table.id) && targetSeat === String(seat), 'drop-seat': dropTarget && dropTarget !== 'unassigned' && dropTarget.table.id === table.id && dropTarget.seat === seat }]"
+                          :class="[occupant(table.id, seat) ? status(occupant(table.id, seat)!) : 'empty', { chosen: targetTable === String(table.id) && targetSeat === String(seat), 'drop-seat': dropTarget && dropTarget.table.id === table.id && dropTarget.seat === seat }]"
                           :style="seatStyle(seat, table.capacity)" :disabled="busy"
                           :aria-label="`${table.name}, posto ${seat}: ${occupant(table.id, seat) ? `${occupant(table.id, seat)!.name}, ${occupant(table.id, seat)!.family_name}, ${statusLabels[status(occupant(table.id, seat)!)]}` : 'libero'}`"
                           @pointerdown="startPersonDrag($event, occupant(table.id, seat))" @pointermove="movePersonDrag"
                           @pointerup="endPersonDrag" @pointercancel="cancelPersonDrag"
                           @lostpointercapture="cancelPersonDrag" @click="selectSeat(table, seat)">
                     <span>{{ occupant(table.id, seat) ? initials(occupant(table.id, seat)!) : seat }}</span>
+                    <span v-if="occupant(table.id, seat)" class="seat-name" :class="{ 'seat-name-below': Math.sin((seat - 1) / table.capacity * Math.PI * 2 - Math.PI / 2) >= 0 }" aria-hidden="true">{{ occupant(table.id, seat)!.name }}</span>
                     <span class="seat-tooltip" aria-hidden="true">
                     <template v-if="occupant(table.id, seat)">
                       <strong>{{ occupant(table.id, seat)!.name }}{{
@@ -625,8 +633,8 @@ watch(() => props.active, (active) => {
                 {{ panelOpen.people ? '−' : '+' }}<span class="sr-only"> {{ panelOpen.people ? 'Chiudi' : 'Apri' }} pannello persone</span>
               </button>
             </div>
-            <div v-show="panelOpen.people" id="people-panel-content" class="panel-body p-4">
-              <div class="flex flex-wrap items-end gap-4"><label class="min-w-0 flex-1 text-sm">Cerca una persona<input
+            <div v-show="panelOpen.people" id="people-panel-content" class="panel-body p-3">
+              <div class="flex flex-wrap items-end gap-2"><label class="min-w-0 flex-1 text-sm">Cerca una persona<input
                   v-model="search" :class="inputClass" type="search" placeholder="Nome o famiglia"></label><label
                   class="text-sm">Risposta<select v-model="statusFilter" :class="inputClass">
                 <option value="all">Tutte</option>
@@ -634,11 +642,7 @@ watch(() => props.active, (active) => {
               </select></label><label class="flex min-h-11 items-center gap-2 text-sm"><input v-model="unassignedOnly"
                                                                                               type="checkbox"> Solo da
                 assegnare</label></div>
-              <div data-drop-unassigned class="unassigned-drop mt-4"
-                   :class="{ 'drop-seat': dropTarget === 'unassigned' }">Rilascia qui per togliere una persona dal
-                tavolo.
-              </div>
-              <ul class="mt-4 grid max-h-80 gap-2 overflow-y-auto p-1">
+              <ul class="mt-2 grid max-h-80 gap-1 overflow-y-auto p-1">
                 <li v-for="person in visiblePeople" :key="person.key">
                   <button type="button" class="person-card"
                           :class="[status(person), { chosen: selectedPersonKey === person.key }]" :disabled="busy"
@@ -648,9 +652,7 @@ watch(() => props.active, (active) => {
                           @pointermove="movePersonDrag" @pointerup="endPersonDrag" @pointercancel="cancelPersonDrag"
                           @lostpointercapture="cancelPersonDrag"><span class="font-medium">{{
                       person.name
-                    }}{{ person.companion ? ' (+1)' : '' }}</span><span class="text-xs">{{
-                      person.family_name
-                    }} · {{ statusLabels[status(person)] }}</span><span class="text-xs">{{ placement(person) }}</span>
+                    }}{{ person.companion ? ' (+1)' : '' }}</span><span class="text-xs">{{ person.family_name }} · {{ placement(person) }}</span>
                   </button>
                 </li>
               </ul>
@@ -666,18 +668,18 @@ watch(() => props.active, (active) => {
                       @pointercancel="endPanelDrag" @lostpointercapture="endPanelDrag"
                       @keydown="movePanelWithKeyboard($event, 'table')">⠿ Tavoli e assegnazioni
               </button>
+              <button type="button" class="panel-toggle" aria-label="Nuovo tavolo" title="Nuovo tavolo" @click="editTable()">+</button>
+              <button v-if="selectedTable && !selectedTable.archived" type="button" class="panel-toggle" :disabled="busy" :aria-label="`Rimuovi ${selectedTable.name}`" :title="`Rimuovi ${selectedTable.name}`" @click="archiveTable(selectedTable, true)">🗑</button>
               <button type="button" class="panel-toggle" :aria-expanded="panelOpen.table"
                       aria-controls="table-panel-content" @click="panelOpen.table = !panelOpen.table">
                 {{ panelOpen.table ? '−' : '+' }}<span class="sr-only"> {{ panelOpen.table ? 'Chiudi' : 'Apri' }} pannello tavoli</span>
               </button>
             </div>
             <div v-show="panelOpen.table" id="table-panel-content" class="panel-body space-y-4 p-4">
-              <form class="border border-line bg-panel p-4" @submit.prevent="saveTable">
+              <form v-if="editingTable" class="border border-line bg-panel p-4" @submit.prevent="saveTable">
                 <div class="flex items-center justify-between gap-2"><h3 class="font-serif text-xl">
                   {{ selectedTable ? 'Modifica tavolo' : 'Nuovo tavolo' }}</h3>
-                  <button v-if="selectedTable" type="button" class="min-h-11 text-xs underline" @click="selectTable()">
-                    Nuovo
-                  </button>
+
                 </div>
                 <label class="mt-3 block text-sm">Nome tavolo<input v-model="tableName" :class="inputClass"
                                                                     maxlength="80" pattern=".*\S.*" required></label>
@@ -687,27 +689,14 @@ watch(() => props.active, (active) => {
                 <button :disabled="busy || !loaded" :class="buttonClass" class="mt-4 w-full bg-ink text-paper">
                   {{ selectedTable ? 'Salva tavolo' : 'Crea tavolo' }}
                 </button>
-                <template v-if="selectedTable && !selectedTable.archived">
-                  <div class="mt-3 grid grid-cols-4 gap-1">
-                    <button
-                        v-for="direction in [{ name: 'Sinistra', icon: '←', x: -20, y: 0 }, { name: 'Su', icon: '↑', x: 0, y: -20 }, { name: 'Giù', icon: '↓', x: 0, y: 20 }, { name: 'Destra', icon: '→', x: 20, y: 0 }]"
-                        :key="direction.name" type="button" :class="buttonClass"
-                        :aria-label="`Sposta tavolo: ${direction.name}`" :disabled="busy"
-                        @click="moveTable(selectedTable, selectedTable.x + direction.x, selectedTable.y + direction.y)">
-                      {{ direction.icon }}
-                    </button>
-                  </div>
-                  <button type="button" :disabled="busy" :class="buttonClass" class="mt-3 w-full"
-                          @click="archiveTable(selectedTable, true)">Archivia tavolo
-                  </button>
-                </template>
+
               </form>
-              <form v-if="selectedPerson" class="border border-line bg-panel p-4" @submit.prevent="assign()">
-                <h3 ref="assignmentHeading" tabindex="-1" class="break-words font-serif text-xl">{{
+              <form v-if="selectedPerson" class="selected-person border border-line bg-panel p-3" @submit.prevent="assign()">
+                <h3 ref="assignmentHeading" tabindex="-1" class="break-words font-serif text-lg">{{
                     selectedPerson.name
                   }}</h3>
                 <p class="mt-2 text-xs">{{ selectedPerson.family_name }} · {{ placement(selectedPerson) }}</p>
-                <label class="mt-3 block text-sm">Tavolo<select v-model="targetTable" :class="inputClass" required
+                <div class="mt-2 grid grid-cols-2 gap-2"><label class="block text-sm">Tavolo<select v-model="targetTable" :class="inputClass" required
                                                                 @change="targetSeat = ''">
                   <option value="" disabled>Scegli un tavolo</option>
                   <option v-for="table in activeTables" :key="table.id" :value="String(table.id)">{{
@@ -715,7 +704,7 @@ watch(() => props.active, (active) => {
                     }}
                   </option>
                 </select></label>
-                <label class="mt-3 block text-sm">Posto<select v-model="targetSeat" :class="inputClass" required>
+                <label class="block text-sm">Posto<select v-model="targetSeat" :class="inputClass" required>
                   <option value="" disabled>Scegli un posto</option>
                   <option v-for="seat in destination?.capacity ?? 0" :key="seat" :value="String(seat)"
                           :disabled="!!occupant(destination!.id, seat) && occupant(destination!.id, seat)?.key !== selectedPerson.key">
@@ -725,25 +714,14 @@ watch(() => props.active, (active) => {
                       occupant(destination!.id, seat) ? ` · ${occupant(destination!.id, seat)!.name}` : ' · Libero'
                     }}
                   </option>
-                </select></label>
+                </select></label></div>
                 <button :disabled="busy || !targetTable || !targetSeat" :class="buttonClass"
-                        class="mt-4 w-full bg-ink text-paper">Assegna posto
+                        class="mt-2 w-full bg-ink text-paper">Assegna posto
                 </button>
                 <button v-if="selectedPerson.table_id !== null" type="button" :disabled="busy" :class="buttonClass"
                         class="mt-2 w-full" @click="assign(true)">Rimuovi assegnazione
                 </button>
               </form>
-              <p v-else class="border border-line p-4 text-sm leading-6">Seleziona una persona dall’elenco per
-                assegnarle un posto.</p>
-              <details v-if="archivedTables.length" class="border border-line p-4">
-                <summary class="cursor-pointer text-sm">Tavoli archiviati ({{ archivedTables.length }})</summary>
-                <div v-for="table in archivedTables" :key="table.id"
-                     class="mt-3 flex items-center justify-between gap-3 text-sm"><span>{{ table.name }}</span>
-                  <button type="button" :class="buttonClass" :disabled="busy" @click="archiveTable(table, false)">
-                    Ripristina
-                  </button>
-                </div>
-              </details>
             </div>
           </aside>
         </div>
@@ -767,7 +745,13 @@ watch(() => props.active, (active) => {
   padding: clamp(1rem, 2vw, 2rem);
   background: var(--color-paper);
   color: var(--color-ink);
+  display: flex;
+  flex-direction: column;
 }
+
+.is-fullscreen .planner-workspace, .is-fullscreen .planner-content { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+.is-fullscreen .editor-surface { flex: 1; min-height: 0; }
+.is-fullscreen .floor-scroll { height: 100%; min-height: 0; }
 
 .editor-surface {
   position: relative;
@@ -928,11 +912,6 @@ watch(() => props.active, (active) => {
   }
 }
 
-.floor-scroll {
-  height: max(420px, calc(100dvh - 17rem));
-  max-height: none;
-}
-
 .floor-plan {
   position: relative;
   width: 1200px;
@@ -964,7 +943,7 @@ watch(() => props.active, (active) => {
   z-index: 1;
   top: 0;
   left: 30px;
-  width: 240px;
+  width: 196px;
   min-height: 44px;
   display: flex;
   align-items: center;
@@ -982,6 +961,7 @@ watch(() => props.active, (active) => {
 .table-handle:active {
   cursor: grabbing;
 }
+.table-edit { position: absolute; z-index: 1; top: 0; right: 30px; width: 44px; min-height: 44px; border: 1px solid var(--color-line); background: var(--color-panel); font-size: 1.1rem; }
 
 .table-center {
   position: absolute;
@@ -1012,6 +992,8 @@ watch(() => props.active, (active) => {
   font-weight: 600;
 }
 
+.seat-name { position: absolute; left: 50%; bottom: calc(100% + 2px); transform: translateX(-50%); max-width: 7rem; color: var(--color-ink); font-size: .65rem; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 0 3px var(--color-paper), 0 0 5px var(--color-paper); pointer-events: none; }
+.seat-name-below { top: calc(100% + 2px); bottom: auto; }
 .seat-tooltip {
   visibility: hidden;
   position: absolute;
@@ -1048,9 +1030,7 @@ watch(() => props.active, (active) => {
   margin-top: .2rem;
 }
 
-.seat:hover .seat-tooltip, .seat:focus-visible .seat-tooltip {
-  visibility: visible;
-}
+.seat:hover .seat-tooltip, .seat:focus-visible .seat-tooltip { visibility: visible; }
 
 .empty {
   background: var(--color-paper);
@@ -1087,10 +1067,10 @@ watch(() => props.active, (active) => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: .4rem;
+  gap: .2rem;
   width: 100%;
-  min-height: 90px;
-  padding: .8rem;
+  min-height: 0;
+  padding: .5rem .65rem;
   border-width: 1px;
   border-style: solid;
   text-align: left;
@@ -1129,10 +1109,4 @@ watch(() => props.active, (active) => {
   outline-offset: 3px;
 }
 
-.unassigned-drop {
-  padding: .8rem;
-  border: 1px dashed var(--color-olive);
-  font-size: .75rem;
-  line-height: 1.6;
-}
 </style>

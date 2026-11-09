@@ -146,7 +146,7 @@ function logout() {
 </script>
 
 <template>
-  <main class="mx-auto px-5 py-12 sm:px-10 sm:py-16" :class="activeTab === 'tables' ? 'max-w-[100rem]' : 'max-w-7xl'">
+  <main class="mx-auto px-5 py-12 sm:px-10 sm:py-16" :class="activeTab === 'tables' ? 'max-w-none' : 'max-w-7xl'">
     <header class="mb-10 flex flex-wrap items-start justify-between">
       <div><p class="text-xs uppercase tracking-[0.2em] text-olive">Jacopo & Agnese · Area riservata</p></div>
       <button v-if="unlocked" :class="buttonClass" @click="logout">Esci</button>
