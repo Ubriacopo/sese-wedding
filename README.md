@@ -4,17 +4,43 @@ Jacopo & Agnese’s wedding website, built with Vue 3, TypeScript, Vite and Tail
 
 Use Node.js 22.22.2+ or 24.15+. Run `npm install` and `npm run dev` to develop; `npm run build` to type-check and build for production.
 
-Edit `src/content/wedding.ts` for names, date, location, schedule, travel, accommodation and RSVP details. Empty fields display placeholder copy. Map links appear when `mapsUrl` is set. Set `rsvpEmail` to enable confirmation by email; the website does not store responses.
+Edit `src/content/wedding.ts` for names, date, location, schedule, travel and accommodation. Empty fields display placeholder copy. Map links appear when `mapsUrl` is set. RSVP responses can be saved in Supabase as described below.
 
-The layout is in `src/App.vue`. Tailwind theme tokens and minimal global styles are in `src/assets/main.css`. The FAQ titles use the locally hosted Cinzel font; its license is included in `public/fonts`. No external services are needed.
+The layout is in `src/App.vue`. Tailwind theme tokens and minimal global styles are in `src/assets/main.css`. The FAQ titles use the locally hosted Cinzel font; its license is included in `public/fonts`. Supabase is optional for local preview and required to save RSVP responses.
 
 The cinema programme uses `events` in `src/content/wedding.ts`. Event stages are illustrative; update them to match the actual schedule.
 
-The RSVP form lives in `src/components/PresenceForm.vue`. It collects a single name, attendance and optional notes. Guests do not need to enter an email address. Without `rsvpEmail`, submission is a clearly labelled preview and does not send or save data. With `rsvpEmail`, submission opens a prefilled email that the guest must send. Replace `submitPresence` with a backend adapter when adding Supabase; implement server-side validation and appropriate access controls before enabling storage.
+## RSVP and personal invitation links
 
-Personalize an invitation link with `?name=Mario&surname=Rossi#presenza`, for example `https://ubriacopo.github.io/sese-wedding/?name=Mario&surname=Rossi#presenza`. Both parameters are optional; `?name=Mario%20Rossi#presenza` also works. Names are combined into the editable name field, with whitespace normalized and a 160-character limit. Use `URLSearchParams` when generating links to encode spaces, accents and special characters correctly. Without these parameters, the name field stays empty. The `#presenza` fragment opens the ticket directly. URL parameters are visible and editable, so they prefill the form without authenticating a guest; no guest list is embedded in the site.
+Each family has exactly one invitation link, including families with just one person. Named families see their family name, the list of guests (for example “Famiglia Murelli: Chiara e Francesco +1”), and attendance choices for each person. Headcount families see their family name and **Confermiamo per:** with a number input. Anyone with the link can view and update that family’s response, so share it privately. The cinema seat and barcode on the guest ticket remain illustrative and separate from the admin seating plan.
 
-Submitting an attending response adds a random cinema hall (1–4), seat (1–20, A–H) and a Code 39 barcode to the ticket stub, preserving its original text and stamp. The barcode is hidden below 640px width or at viewport heights of 600px or less to keep the original information and seating details readable. These are theatrical decorations, generated once per page session and retained when editing the response. They are not actual seating assignments or admission credentials, are not guaranteed unique, and are not persisted on reload. Non-attending responses keep the original stub. When adding a backend, persist ticket details with the RSVP and reveal them after a successful save; the current preview/email flow does not verify confirmation.
+### Set up Supabase
+
+1. Create a Supabase project. In its SQL editor, run all SQL migrations in `supabase/migrations/` in filename order, once each. These create families, guests, invitations, responses and token-scoped functions. The table has row level security enabled and no public table access; the functions validate inputs and operate only on the supplied token.
+2. Copy `.env.example` to `.env.local`, then set `VITE_SUPABASE_URL` to the project URL and `VITE_SUPABASE_PUBLISHABLE_KEY` to the project publishable key (a legacy anon key also works). These are public browser settings. Never use a secret or service role key here.
+3. Restart the development server. The RSVP form appears only after a personal invitation token is validated by Supabase. Missing or invalid invitation links show the fully booked message directly on the green section background, with no ticket frame, inputs, or submit button. A personal link opened without backend settings reports that the service is unavailable.
+4. For GitHub Pages, add the same two values as repository variables under **Settings → Secrets and variables → Actions → Variables**, then redeploy. Vite embeds them at build time. Until both variables are configured, the deployed form cannot save responses.
+
+### Manage guests and responses
+
+Open `/sese-wedding/dashboard/` on the deployed site (or `/sese-wedding/dashboard/` on the local Vite server). The dashboard has no link from the guest site. Its initial password is `admin`, as requested for setup. **Change it immediately using the dashboard before adding real guests or sharing the site:** this initial password is public and allows anyone to see and edit invitation data. The password is checked by the database on each request and stored there as a bcrypt hash. This simple shared-password design has no account management or rate limiting; use Supabase Auth and proper authorization before relying on it for sensitive information.
+
+Use **Crea una famiglia** to enter the family name and choose how it responds:
+
+- **Per ciascun membro nominativo**: enter one name per line, including a single name for an individual guest. The ticket lists those names and collects attendance per member. You can add another member later without changing the family link.
+- **Con il numero di persone**: enter a private maximum (1–100). Guests enter a whole number of attendees, including 0 to decline. The maximum is enforced by the server and omitted from the guest API response, input attributes, labels, and validation messages. It is visible only in the authenticated admin list. The chosen count is saved and can be edited using the same link.
+
+Each family has the independent boolean **Consenti +1**, disabled by default. The companion field appears only when enabled and someone is attending. For headcount families, a permitted +1 is additional to the private maximum. Disabling the flag removes the saved companion and frees their seat. The attendance total counts the companion once.
+
+Apply all migrations in filename order. `20261109000005_family_invitations.sql` consolidates existing invitation rows to one per family, retaining the oldest active link where possible and invalidating the other old member links. Copy the canonical family link from the updated admin list. Member responses and existing seat assignments are preserved.
+
+`public.invitations.family_id` is unique. `public.responses` stores one response per `guest_id`; `public.family_responses` stores shared notes, the response date, and the confirmed headcount. Headcount families have numbered guest placeholders for seating: confirmed slots are green, unused slots become absent/red after an answer, and unanswered slots are amber. Guests never receive these placeholders or their count in the invitation payload.
+
+To revoke a family link, set its invitation’s `revoked_at` to `now()`. To replace it, set `token` to `gen_random_uuid()` and clear `revoked_at`. Family membership, answers, and seating remain associated with the family.
+
+The token is an access credential: anyone with the link can view and edit the associated response. Share it privately. The site uses a no-referrer policy to avoid passing it to linked sites. An invitation link does not prove the recipient's identity.
+
+`?invite=<token>#presenza` determines the invitation and loads any saved response. Name and surname parameters do not unlock the form. The public fully booked message is configured in `wedding.rsvpUnavailable` in `src/content/wedding.ts`. Server-side validation limits names to 160 characters and notes to 1,000 characters. A failed save leaves the form visible so guests can retry; a successful save plays the ticket animation.
 
 Edit `src/content/faqs.json` to add, remove or reorder FAQs. Each entry has a unique `id` (also used for its anchor), a plain-text `question`, an optional plain-text `subtitle` (omit it or leave it empty to hide it), and an `answerHtml` string. Answers render as HTML, so you can add paragraphs, links, lists and Tailwind classes. Keep this HTML authored in the repository; it is rendered directly without sanitization. Escape double quotes inside JSON strings, for example:
 
@@ -66,3 +92,23 @@ The compact slideshow shows the poster, genre, title and tagline. It supports ar
 Configure `gift` in `src/content/wedding.ts` for the cinema end-credits gift section. Add both `iban` and `accountHolder` to display bank details and the copy button; otherwise the placeholder is shown. `reference` is optional. The copy button selects the IBAN for manual copying if clipboard access is unavailable (including some LAN HTTP connections).
 
 The FAQ board uses `showtime` (for example `15:30`) and `seatsLeft` (for example `42`) in each FAQ entry as cinema decorations. These values do not represent the wedding schedule or actual remaining capacity.
+
+## Invitation regression checks
+
+Run `npm run build` for Vue and TypeScript validation. For database behavior, run `supabase/tests/family_plus_one.sql` as the database owner in the Supabase SQL editor after applying migrations. This standalone SQL check raises an exception on failure and rolls back its temporary guests, responses, and dashboard password setting. It checks one link per family, named and headcount answers, hidden and enforced capacity, unrelated-member rejection, companion permissions, response updates, authorization, and revoked links. No test framework is required.
+
+## Seating plan
+
+After signing in to the dashboard, open the second tab, **Tavoli e posti**, to create and rename tables, choose a capacity of 1–20 numbered seats, and drag tables around the room. Positions, table settings, and assignments are stored in Supabase. Use the arrow buttons as an alternative to dragging, and zoom or scroll the plan on smaller screens.
+
+Select a guest from the searchable roster (or an occupied seat), choose a table and seat, and press **Assegna posto**. You can also select a free seat in the drawing to fill the destination fields. Moving a person frees their previous seat. Occupied seats cannot be overwritten, and reducing a table’s capacity requires first moving anyone sitting in the seats being removed. Unassign a person with **Rimuovi assegnazione**.
+
+Green means confirmed, amber means awaiting a response, and red means absent. Labels and the filter identify these statuses without relying on color. Pending and absent guests may still be seated while planning. Confirmed family companions appear once as a separate person marked **(+1)**. A companion’s name can change while keeping their seat; removing the companion or +1 permission frees their seat automatically.
+
+Use **Aggiorna RSVP e pianta** to fetch current answers and the saved plan; the editor also refreshes after dashboard guest changes. It does not subscribe to live updates. Archiving a table hides it and treats its guests as unassigned, while preserving its layout and remaining assignments for restoration under **Tavoli archiviati**. Guests reassigned elsewhere keep their new seat when the old table is restored.
+
+Apply `20261109000004_seating_plan.sql` after the previous migrations. Seating tables have row-level security and no direct public access; dashboard functions check the admin password on every request. To run the standalone SQL regression checks, execute `supabase/tests/seating_plan.sql` as the database owner in the Supabase SQL editor. It rolls back all test records/settings and checks persistence, RSVP statuses, seat uniqueness, capacities, moves, archiving/restoration, companion cleanup, and unauthorized access. Run `npm run build` to validate the frontend.
+
+The dashboard’s first tab contains families and invitation responses; the second contains table management. Tabs support arrow keys, Home, and End, and preserve draft fields when switching. Opening the tables tab refreshes its saved plan.
+
+Use the **Sposta** handle next to a person to drag them from the roster, or drag an occupied seat directly. Drop on an empty numbered seat for an exact assignment, or on the table for its first available seat. Drop in the dashed unassigned area to free the person’s seat. Occupied/full destinations are rejected; dropping elsewhere or pressing Escape cancels the move. Pointer dragging supports mouse, pen, and touch, with scrolling near the plan/page edges. Selection and **Assegna posto** remain available for keyboard users. Successful drops use the same database validation and persistence as manual assignment.

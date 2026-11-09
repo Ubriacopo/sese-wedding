@@ -7,6 +7,10 @@ export const wedding = {
   location: 'Tenuta Cascina Canova',
   rsvpEmail: '',
   rsvpDeadline: '',
+  rsvpUnavailable: {
+    title: 'We might be fully booked for this screening!',
+    message: 'Good luck next time!',
+  },
   events: [
     { title: 'La cerimonia', poster: 'ceremony', tagline: 'Una promessa per sempre', time: '11.00', venue: 'Chiesa della Ramera', address: '', mapsUrl: '' },
     { title: 'Un brindisi insieme', poster: 'toast', tagline: 'A noi. E a tutti voi.', time: '12.30', venue: '', address: '', mapsUrl: '', note: 'Il primo brindisi, due chiacchiere e il tempo di ritrovarsi. I dettagli arriveranno presto.' },

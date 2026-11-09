@@ -11,6 +11,7 @@
     "type-check": "vue-tsc --build"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "vue": "^3.5.42"
   },
   "devDependencies": {

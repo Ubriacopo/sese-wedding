@@ -1,21 +1,60 @@
 <script setup lang="ts">
-import { nextTick, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import { supabase } from '../lib/supabase'
 import { wedding } from '../content/wedding'
 import TicketBarcode from './TicketBarcode.vue'
 
 const invitationParams = new URLSearchParams(window.location.search)
 // Also accept invitation parameters appended to the ticket anchor.
 const fragmentParams = new URLSearchParams(window.location.hash.split('?')[1]?.split('#')[0] ?? '')
-const invitationName = [
-  invitationParams.get('name') ?? fragmentParams.get('name'),
-  invitationParams.get('surname') ?? fragmentParams.get('surname'),
-]
-  .filter(Boolean)
-  .join(' ')
-  .replace(/\s+/g, ' ')
-  .trim()
-  .slice(0, 160)
-const form = reactive({ name: invitationName, attending: 'yes', notes: '' })
+const form = reactive({ count: null as number | null, notes: '', bringCompanion: false, companionName: '' })
+const byHeadcount = ref(false)
+const allowPlusOne = ref(false)
+const familyName = ref('')
+const members = ref<{ guest_id: number, guest_name: string, attending: string }[]>([])
+const familyTitle = computed(() => /^famiglia\b/i.test(familyName.value) ? familyName.value : `Famiglia ${familyName.value}`)
+const familySummary = computed(() => {
+  const names = new Intl.ListFormat('it', { style: 'long', type: 'conjunction' }).format(members.value.map((member) => member.guest_name))
+  return `${familyTitle.value}${names ? `: ${names}` : ''}${allowPlusOne.value ? ' +1' : ''}`
+})
+const anyoneAttending = computed(() => byHeadcount.value ? Number(form.count) > 0 : members.value.some((member) => member.attending === 'yes'))
+const invitationToken = invitationParams.get('invite') ?? fragmentParams.get('invite') ?? ''
+const hasInvitationToken = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(invitationToken)
+const invitationState = ref<'closed' | 'loading' | 'ready' | 'error'>(hasInvitationToken ? 'loading' : 'closed')
+const formError = ref('')
+const isSubmitting = ref(false)
+
+onMounted(async () => {
+  if (!hasInvitationToken) return
+  if (!supabase) {
+    invitationState.value = 'error'
+    formError.value = 'Il servizio di conferma non è disponibile. Contatta gli sposi.'
+    return
+  }
+  try {
+    const { data, error } = await supabase.rpc('get_invitation', { invitation_token: invitationToken })
+    if (error) throw error
+    if (!data) {
+      invitationState.value = 'closed'
+      return
+    }
+    byHeadcount.value = data.by_headcount === true
+    form.count = data.confirmed_count ?? null
+    allowPlusOne.value = data.allow_plus_one === true
+    familyName.value = data.family_name ?? ''
+    members.value = (data.members ?? []).map((member: { guest_id: number, guest_name: string, attending: boolean | null }) => ({
+      guest_id: member.guest_id, guest_name: member.guest_name,
+      attending: member.attending === null ? '' : member.attending ? 'yes' : 'no',
+    }))
+    form.bringCompanion = Boolean(data.plus_one_name)
+    form.companionName = data.plus_one_name ?? ''
+    form.notes = data.notes ?? ''
+    invitationState.value = 'ready'
+  } catch {
+    invitationState.value = 'error'
+    formError.value = 'Impossibile caricare l’invito. Riprova più tardi.'
+  }
+})
 const status = ref('')
 const ticketReleaseCount = ref(0)
 const thankYouHeading = ref<HTMLElement>()
@@ -32,40 +71,79 @@ const fieldClass = 'block min-h-11 w-full min-w-0 rounded-none border border-oli
 const choiceClass = 'flex min-h-11 cursor-pointer items-center gap-2 border border-line px-3 py-2 has-checked:border-olive has-checked:bg-[#e9ecdf]'
 const radioClass = 'size-4 shrink-0 accent-olive' 
 
-// Replace this adapter with a Supabase call when a submission service is chosen.
-function submitPresence() {
-  if (ticketReleaseCount.value) return
-  if (form.attending === 'yes' && !cinemaSeat.value) {
+async function submitPresence() {
+  if (ticketReleaseCount.value || isSubmitting.value || invitationState.value !== 'ready' || !supabase) return
+  formError.value = ''
+  isSubmitting.value = true
+  try {
+    const { data, error } = await supabase.rpc('submit_family_response', {
+      invitation_token: invitationToken,
+      confirmed_count: byHeadcount.value ? form.count : null,
+      guest_notes: form.notes.trim(),
+      companion_name: allowPlusOne.value && anyoneAttending.value && form.bringCompanion ? form.companionName.trim() : null,
+      member_responses: byHeadcount.value ? [] : members.value.map((member) => ({ guest_id: member.guest_id, attending: member.attending === 'yes' })),
+    })
+    if (error) throw error
+    if (!data) {
+      invitationState.value = 'error'
+      formError.value = 'Questo link di invito non è più valido. Contatta gli sposi.'
+      return
+    }
+  } catch (cause) {
+    const requestError = cause as { code?: string }
+    formError.value = byHeadcount.value && requestError.code === '22023'
+      ? 'Controlla il numero di persone. Contatta gli sposi se hai bisogno di aiuto.'
+      : 'Non siamo riusciti a salvare la risposta. Controlla la connessione e riprova.'
+    return
+  } finally {
+    isSubmitting.value = false
+  }
+  if (anyoneAttending.value && !cinemaSeat.value) {
     cinemaSeat.value = {
       hall: Math.floor(Math.random() * 4) + 1,
       seat: `${Math.floor(Math.random() * 20) + 1}${'ABCDEFGH'[Math.floor(Math.random() * 8)]}`,
       code: String(Math.floor(Math.random() * 1000000)).padStart(6, '0'),
     }
   }
+  status.value = 'La tua risposta è stata salvata. Puoi modificarla usando questo stesso link.'
   ticketReleaseCount.value += 1
   nextTick(() => thankYouHeading.value?.focus())
-  if (!wedding.rsvpEmail) {
-    status.value = 'Il modulo è in anteprima: la risposta non è stata inviata né salvata. Presto potrai confermare qui la tua presenza.'
-    return
-  }
-  const attending = form.attending === 'yes'
-  const body = [
-    `Nome: ${form.name.trim()}`,
-    `Presenza: ${attending ? 'Sì' : 'No'}`,
-    `Note: ${form.notes.trim()}`,
-  ].join('\n')
-  window.location.href = `mailto:${wedding.rsvpEmail}?subject=${encodeURIComponent('Conferma presenza matrimonio')}&body=${encodeURIComponent(body)}`
-  status.value = 'Abbiamo richiesto l’apertura della tua app email. Invia il messaggio da lì per completare la conferma.'
 }
 </script>
 
 <template>
-  <form id="presenza" ref="ticketForm" class="ticket-scene min-w-0 [&_label]:min-w-0 [&_label]:text-[0.8rem] [&_label]:font-medium" @submit.prevent="submitPresence">
+  <section v-if="invitationState === 'closed'" id="presenza" class="ticket-scene" aria-labelledby="closed-screening-title">
+    <div class="flex min-h-72 flex-col items-center justify-center px-4 py-10 text-center text-[#f5f2e9] sm:min-h-96">
+      <h3 id="closed-screening-title" lang="en" class="max-w-md font-serif text-4xl leading-tight sm:text-5xl">{{ wedding.rsvpUnavailable.title }}</h3>
+      <p lang="en" class="mt-5 text-sm leading-7">{{ wedding.rsvpUnavailable.message }}</p>
+    </div>
+    <footer class="cinema-ticket ticket-stub" aria-hidden="true">
+      <div class="ticket-stub-copy"><span class="ticket-kicker">Conserva l’emozione</span><p>Una prima. Insieme.</p></div>
+      <span class="ticket-stamp">J &amp; A<br>★</span>
+    </footer>
+  </section>
+  <section v-else-if="invitationState !== 'ready'" id="presenza" class="ticket-scene" :aria-busy="invitationState === 'loading'" aria-labelledby="unavailable-ticket-title">
+    <div class="cinema-ticket ticket-upper text-ink">
+      <header class="ticket-header">
+        <p class="ticket-kicker">{{ wedding.names }}</p>
+        <div class="ticket-meta mt-3"><span>La prima · {{ wedding.date || 'Data in arrivo' }}</span><span>Proiezione unica</span></div>
+      </header>
+      <div class="px-3 py-8 text-center sm:py-12" role="status">
+          <h3 id="unavailable-ticket-title" class="font-serif text-3xl">{{ invitationState === 'loading' ? 'Il tuo biglietto' : 'Invito non disponibile' }}</h3>
+          <p class="mt-5 text-sm leading-7">{{ invitationState === 'loading' ? 'Caricamento invito…' : formError }}</p>
+      </div>
+    </div>
+    <footer class="cinema-ticket ticket-stub">
+      <div class="ticket-stub-copy"><span class="ticket-kicker">Conserva l’emozione</span><p>Una prima. Insieme.</p></div>
+      <span class="ticket-stamp" aria-hidden="true">J &amp; A<br>★</span>
+    </footer>
+  </section>
+  <form v-else id="presenza" ref="ticketForm" class="ticket-scene min-w-0 [&_label]:min-w-0 [&_label]:text-[0.8rem] [&_label]:font-medium" @submit.prevent="submitPresence">
     <div class="ticket-stage">
       <div v-if="ticketReleaseCount" class="ticket-thanks" role="status">
         <h3 ref="thankYouHeading" tabindex="-1" class="font-serif text-4xl leading-tight sm:text-5xl">Grazie per la risposta</h3>
         <p class="mt-5 max-w-sm text-sm leading-7">{{ status }}</p>
-        <button type="button" class="mt-6 min-h-11 border-b border-current text-xs" @click="resetTicket">{{ wedding.rsvpEmail ? 'Modifica la risposta' : 'Prova di nuovo' }}</button>
+        <button type="button" class="mt-6 min-h-11 border-b border-current text-xs" @click="resetTicket">Modifica la risposta</button>
       </div>
       <div class="ticket-upper cinema-ticket text-ink" :class="{ 'is-falling': ticketReleaseCount > 0 }" :inert="ticketReleaseCount > 0" :aria-hidden="ticketReleaseCount > 0">
 
@@ -75,21 +153,30 @@ function submitPresence() {
       <div class="ticket-meta"><span>La prima · {{ wedding.date || 'Data in arrivo' }}</span><span>Invito speciale</span></div>
     </header>
     <div class="ticket-body">
-       <div class="ticket-fields grid gap-2">
-        <label><span class="sr-only">Nome (obbligatorio)</span><input :class="fieldClass" v-model="form.name" name="name" autocomplete="name" placeholder="Nome *" required maxlength="160" pattern=".*\S.*" /></label>
+      <p class="font-serif text-lg leading-7">{{ familySummary }}</p>
+      <label v-if="byHeadcount" class="block">Confermiamo per:
+        <input v-model.number="form.count" :class="fieldClass" class="mt-2" type="number" name="confirmed-count" min="0" step="1" required>
+        <span class="mt-2 block text-xs leading-5">Indica il numero di persone presenti. Se non potrete esserci, inserisci 0.</span>
+      </label>
+      <template v-else>
+        <fieldset v-for="member in members" :key="member.guest_id" class="min-w-0">
+          <legend class="mb-2 text-sm">{{ member.guest_name }} *</legend>
+          <div class="grid grid-cols-2 gap-2">
+            <label :class="choiceClass"><input v-model="member.attending" :class="radioClass" type="radio" :name="`member-${member.guest_id}`" value="yes" required> Ci sarà</label>
+            <label :class="choiceClass"><input v-model="member.attending" :class="radioClass" type="radio" :name="`member-${member.guest_id}`" value="no" required> Non ci sarà</label>
+          </div>
+        </fieldset>
+      </template>
+      <div v-if="allowPlusOne && anyoneAttending" class="grid min-w-0 gap-2">
+        <label :class="choiceClass"><input v-model="form.bringCompanion" :class="radioClass" type="checkbox"> Aggiungiamo un accompagnatore (+1)</label>
+        <label v-if="form.bringCompanion"><span class="mb-1 block">Nome e cognome dell’accompagnatore *</span><input v-model="form.companionName" :class="fieldClass" name="companion" placeholder="Nome e cognome *" maxlength="160" pattern=".*\S.*" required></label>
       </div>
-      <fieldset class="ticket-attendance min-w-0">
-        <legend class="sr-only">Ci sarai? (obbligatorio)</legend>
-        <div class="grid grid-cols-2 gap-2">
-          <label :class="choiceClass"><input :class="radioClass" v-model="form.attending" type="radio" name="attending" value="yes" required /> Ci sarò</label>
-          <label :class="choiceClass"><input :class="radioClass" v-model="form.attending" type="radio" name="attending" value="no" /> Non ci sarò</label>
-        </div>
-      </fieldset>
       <div class="ticket-notes min-w-0">
         <label><span class="sr-only">Note (facoltative)</span><textarea :class="fieldClass" class="resize-y" v-model="form.notes" name="notes" rows="2" maxlength="1000" placeholder="Note (facoltative)" /></label>
       </div>
-      <p class="ticket-privacy text-[11px] leading-4 text-ink/65">* Campi obbligatori. {{ wedding.rsvpEmail ? 'Conferma inviando l’email. Il sito non conserva i dati.' : 'Questa anteprima non trasmette i dati.' }}</p>
-      <button type="submit" class="ticket-submit flex min-h-11 w-full items-center justify-between gap-3 bg-ink px-4 py-2 text-sm text-paper hover:bg-olive">{{ wedding.rsvpEmail ? 'Prepara la conferma via email' : 'Prova il modulo' }}<span aria-hidden="true">↗</span></button>
+      <p class="ticket-privacy text-[11px] leading-4 text-ink/65">* Campi obbligatori. La risposta sarà salvata per organizzare il matrimonio.</p>
+      <p v-if="formError" role="alert" class="text-sm leading-5 text-[#8a2929]">{{ formError }}</p>
+      <button type="submit" :disabled="isSubmitting" class="ticket-submit flex min-h-11 w-full items-center justify-between gap-3 bg-ink px-4 py-2 text-sm text-paper hover:bg-olive">{{ isSubmitting ? 'Invio in corso…' : 'Conferma la risposta' }}<span aria-hidden="true">↗</span></button>
     </div>
       </div>
     </div>
@@ -98,13 +185,13 @@ function submitPresence() {
         <span class="ticket-kicker">Conserva l’emozione</span>
         <p>Una prima. Insieme.</p>
       </div>
-      <dl v-if="ticketReleaseCount && form.attending === 'yes' && cinemaSeat" class="ticket-seat" aria-label="Il tuo posto al cinema (dettagli di scena)">
+      <dl v-if="ticketReleaseCount && anyoneAttending && cinemaSeat" class="ticket-seat" aria-label="Il tuo posto al cinema (dettagli di scena)">
         <div><dt>Sala</dt><dd>{{ cinemaSeat.hall }}</dd></div>
         <div><dt>Posto</dt><dd>{{ cinemaSeat.seat }}</dd></div>
       </dl>
-      <TicketBarcode v-if="ticketReleaseCount && form.attending === 'yes' && cinemaSeat" :code="cinemaSeat.code" />
+      <TicketBarcode v-if="ticketReleaseCount && anyoneAttending && cinemaSeat" :code="cinemaSeat.code" />
       <span class="ticket-stamp" aria-hidden="true">J &amp; A<br>★</span>
-      <span id="ticket-nominative-note" class="ticket-nominative-note block text-[0.65rem] leading-tight">* Il biglietto è nominativo e non cedibile.</span>
+      <span id="ticket-nominative-note" class="ticket-nominative-note block text-[0.65rem] leading-tight">* Il biglietto è riservato alla famiglia invitata e non è cedibile.</span>
     </footer>
   </form>
 </template>

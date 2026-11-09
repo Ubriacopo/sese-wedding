@@ -18,6 +18,11 @@ export default defineConfig({
     port: 4173,
     strictPort: true,
   },
+  build: {
+    rollupOptions: {
+      input: { main: fileURLToPath(new URL('./index.html', import.meta.url)), dashboard: fileURLToPath(new URL('./dashboard/index.html', import.meta.url)) },
+    },
+  },
   plugins: [
     vue(),
     tailwindcss(),

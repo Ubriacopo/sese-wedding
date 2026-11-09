@@ -1,0 +1,65 @@
+-- Run as owner after all migrations. Test data and password changes roll back.
+begin;
+update private.dashboard_settings set password_hash = extensions.crypt('family-test-password', extensions.gen_salt('bf')) where id;
+do $$
+declare
+  test_password text := 'family-test-password'; suffix text := gen_random_uuid()::text;
+  named bigint; numbered bigint; solo bigint; member_a bigint; member_b bigint;
+  named_token uuid; numbered_token uuid; solo_token uuid; payload jsonb; answers jsonb; failed boolean;
+begin
+  named := public.dashboard_create_family(test_password, 'Murelli ' || suffix, array['Chiara', 'Francesco'], null, true);
+  numbered := public.dashboard_create_family(test_password, 'Bartolotta ' || suffix, '{}', 4);
+  solo := public.dashboard_create_family(test_password, 'Solo ' || suffix, array['Solo']);
+  select token into named_token from public.invitations where family_id = named;
+  select token into numbered_token from public.invitations where family_id = numbered;
+  select token into solo_token from public.invitations where family_id = solo;
+  if (select count(*) from public.invitations where family_id = named) <> 1 then raise exception 'Family has multiple links'; end if;
+  payload := public.get_invitation(named_token);
+  if jsonb_array_length(payload->'members') <> 2 or payload->'allow_plus_one' <> 'true'::jsonb then raise exception 'Named family details missing'; end if;
+  select id into member_a from public.guests where family_id = named and guest_name = 'Chiara';
+  select id into member_b from public.guests where family_id = named and guest_name = 'Francesco';
+  answers := jsonb_build_array(jsonb_build_object('guest_id', member_a, 'attending', true), jsonb_build_object('guest_id', member_b, 'attending', false));
+  perform public.submit_family_response(named_token, 'Notes', answers, null, 'Companion');
+  payload := public.get_invitation(named_token);
+  if payload->>'plus_one_name' is distinct from 'Companion' or payload->>'notes' is distinct from 'Notes' then raise exception 'Family response not saved'; end if;
+  perform public.dashboard_add_guest(test_password, '', 'Third', named);
+  if (select token from public.invitations where family_id = named) is distinct from named_token then raise exception 'Adding a member changed link'; end if;
+  if jsonb_array_length(public.get_invitation(named_token)->'members') <> 3 then raise exception 'New member not visible'; end if;
+  failed := false;
+  begin perform public.submit_family_response(named_token, '', answers); exception when sqlstate '22023' then failed := true; end;
+  if not failed then raise exception 'Incomplete family accepted'; end if;
+  failed := false;
+  begin perform public.submit_family_response(solo_token, '', jsonb_build_array(jsonb_build_object('guest_id', member_a, 'attending', true))); exception when sqlstate '22023' then failed := true; end;
+  if not failed then raise exception 'Foreign member accepted'; end if;
+  payload := public.get_invitation(numbered_token);
+  if payload ? 'maximum_guests' or payload ? 'max_guests' or payload->'by_headcount' <> 'true'::jsonb or payload->'members' <> '[]'::jsonb then raise exception 'Private capacity leaked'; end if;
+  if exists (select 1 from jsonb_array_elements(public.dashboard_family_invitations(test_password)) f where (f->>'family_id')::bigint = numbered and (f->>'maximum_guests')::integer <> 4) then raise exception 'Admin capacity missing'; end if;
+  failed := false;
+  begin perform public.submit_family_response(numbered_token, '', '[]', 5); exception when sqlstate '22023' then
+    if sqlerrm like '%4%' then raise exception 'Error leaked maximum'; end if;
+    failed := true;
+  end;
+  if not failed then raise exception 'Over capacity accepted'; end if;
+  failed := false;
+  begin perform public.submit_family_response(numbered_token, '', '[]', -1); exception when sqlstate '22023' then failed := true; end;
+  if not failed then raise exception 'Negative attendance accepted'; end if;
+  perform public.submit_family_response(numbered_token, 'First answer', '[]', 3);
+  if (public.get_invitation(numbered_token)->>'confirmed_count')::integer is distinct from 3 then raise exception 'Headcount not saved'; end if;
+  if (select count(*) from public.responses r join public.guests g on g.id = r.guest_id where g.family_id = numbered and r.attending) <> 3 then raise exception 'Seating headcount mismatch'; end if;
+  perform public.submit_family_response(numbered_token, 'Update', '[]', 1);
+  if (select count(*) from public.responses r join public.guests g on g.id = r.guest_id where g.family_id = numbered and r.attending) <> 1 then raise exception 'Headcount update failed'; end if;
+  failed := false;
+  begin perform public.submit_family_response(numbered_token, '', '[]', 1, 'Unauthorized'); exception when sqlstate '22023' then failed := true; end;
+  if not failed then raise exception 'Unauthorized plus one accepted'; end if;
+  perform public.dashboard_set_family_plus_one(test_password, numbered, true);
+  perform public.submit_family_response(numbered_token, '', '[]', 4, 'Extra');
+  perform public.submit_family_response(numbered_token, '', '[]', 0);
+  if public.get_invitation(numbered_token)->>'plus_one_name' is not null then raise exception 'Decline kept companion'; end if;
+  if exists (select 1 from public.responses r join public.guests g on g.id = r.guest_id where g.family_id = numbered and r.attending) then raise exception 'Zero count left confirmed members'; end if;
+  update public.invitations set revoked_at = now() where family_id = numbered;
+  if public.get_invitation(numbered_token) is not null or public.submit_family_response(numbered_token, '', '[]', 1) then raise exception 'Revoked family accepted'; end if;
+  failed := false;
+  begin perform public.dashboard_create_family('wrong-password', 'Unauthorized', array['Test']); exception when sqlstate '28000' then failed := true; end;
+  if not failed then raise exception 'Unauthorized family creation'; end if;
+end $$;
+rollback;

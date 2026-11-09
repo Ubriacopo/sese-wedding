@@ -125,8 +125,8 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
         bene. Ci saranno un sì, qualcosa di buono da mangiare e tempo per festeggiare.</p>
     </section>
     <div class="programme-wallpaper programme-projector">
-      <section id="giornata" class="mx-auto max-w-6xl px-6 py-24 sm:px-12 sm:py-32">
-        <div class="mb-14 flex flex-wrap items-end justify-between gap-6">
+      <section id="giornata" class="mx-auto max-w-6xl px-6 py-16 sm:px-12 sm:py-32">
+        <div class="mb-8 flex flex-wrap items-end justify-between gap-6 sm:mb-14">
           <div><p :class="label" class="mb-5">01 / La programmazione del giorno</p>
             <h2 class="font-serif text-5xl tracking-tight sm:text-6xl">Oggi in sala</h2></div>
           <p class="max-w-xs text-sm leading-6 text-ink/65">{{ wedding.date || 'La data sarà annunciata presto.' }}<br>Quattro
@@ -134,7 +134,8 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
         </div>
         <div class="programme-banner"><span>In cartellone</span><span>{{ wedding.names }} · Proiezione unica</span>
         </div>
-        <ol class="screenings">
+        <p class="mb-3 text-xs text-olive sm:hidden" aria-hidden="true">Scorri per vedere gli altri momenti →</p>
+        <ol class="screenings" tabindex="0" aria-label="Programma della giornata">
           <li v-for="(event, index) in wedding.events" :key="event.title" class="screening">
             <article :aria-labelledby="`screening-${index}`">
               <CinemaPoster :title-id="`screening-${index}`" :title="event.title" :poster="event.poster"
