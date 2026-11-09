@@ -147,8 +147,8 @@ function logout() {
 
 <template>
   <main class="mx-auto px-5 py-12 sm:px-10 sm:py-16" :class="activeTab === 'tables' ? 'max-w-[100rem]' : 'max-w-7xl'">
-    <header class="mb-10 flex flex-wrap items-start justify-between gap-5 border-b border-line pb-8">
-      <div><p class="text-xs uppercase tracking-[0.2em] text-olive">Jacopo & Agnese · Area riservata</p><h1 class="mt-4 font-serif text-4xl sm:text-5xl">Gestione del matrimonio</h1></div>
+    <header class="mb-10 flex flex-wrap items-start justify-between">
+      <div><p class="text-xs uppercase tracking-[0.2em] text-olive">Jacopo & Agnese · Area riservata</p></div>
       <button v-if="unlocked" :class="buttonClass" @click="logout">Esci</button>
     </header>
     <form v-if="!unlocked" class="max-w-sm border border-line bg-panel p-6" @submit.prevent="loadFamilies">

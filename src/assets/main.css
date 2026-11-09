@@ -20,7 +20,7 @@
 }
 
 @layer base {
-  html { scroll-behavior: smooth; scroll-padding-top: 6rem; }
+  html { scroll-behavior: smooth; scroll-padding-top: 3.5rem; }
   body { @apply m-0 bg-paper font-sans text-ink antialiased; }
   ::selection { background: var(--color-olive); color: var(--color-paper); }
   a, button, summary { @apply focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-olive; }
@@ -41,6 +41,8 @@
 }
 
 @layer components {
+  main > section, main > .programme-wallpaper > section { min-height: 100vh; min-height: 100svh; }
+  .hero-stage { display: flex; align-items: center; min-height: calc(100vh - 3rem); min-height: calc(100svh - 3rem); padding-block: 1rem 2rem; }
   .programme-wallpaper {
     background-color: var(--color-paper);
     background-image: linear-gradient(color-mix(in srgb, var(--color-paper) 82%, transparent), color-mix(in srgb, var(--color-paper) 82%, transparent)), var(--programme-background, url('/wallpaper.jpg'));
@@ -110,13 +112,17 @@
     .gift-bank { padding: 2rem; }
     .gift-iban { font-size: 1rem; }
   }
-  .site-header { position: relative; }
-  .theme-toggle { display: inline-flex; align-items: center; gap: .5rem; min-height: 2.75rem; flex-shrink: 0; border: 1px solid var(--color-line); padding: .35rem .75rem; font-size: .65rem; letter-spacing: .05em; cursor: pointer; }
+  .site-header { position: sticky; top: 0; z-index: 40; min-height: 3rem; background: transparent; text-shadow: 0 0 4px var(--color-paper), 0 0 8px var(--color-paper), 0 0 12px var(--color-paper); transition: background-color 160ms ease; }
+  .site-header:hover, .site-header:focus-within { background: var(--color-paper); }
+  @media (prefers-reduced-motion: reduce) { .site-header { transition: none; } }
+  .theme-toggle { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-width: 2.75rem; min-height: 2.75rem; flex-shrink: 0; padding: .25rem; font-size: .65rem; letter-spacing: .05em; cursor: pointer; }
   .theme-toggle:hover { background: var(--color-panel); }
   .cinema-poster { position: relative; isolation: isolate; background-image: linear-gradient(color-mix(in srgb, var(--color-paper) 83%, transparent), color-mix(in srgb, var(--color-paper) 83%, transparent)), url('/slide-projector.jpg'); background-position: center; background-size: cover; }
   .cinema-poster::before { content: ''; position: absolute; z-index: -1; inset: 1rem; border: 1px solid #f5f2e9cc; box-shadow: 0 0 0 1px #343c3233; pointer-events: none; }
   .viewfinder-rec { position: absolute; top: 2rem; right: 2rem; display: flex; align-items: center; gap: .4rem; color: var(--color-ink); font-family: 'Courier New', monospace; font-size: .65rem; font-weight: 700; letter-spacing: .12em; }
-  .viewfinder-rec span { width: .45rem; height: .45rem; border-radius: 50%; background: #b74843; }
+  .viewfinder-rec span { width: .45rem; height: .45rem; border-radius: 50%; background: #b74843; animation: recording-blink 1.5s steps(1, end) infinite; }
+  @keyframes recording-blink { 50% { opacity: .2; } }
+  @media (prefers-reduced-motion: reduce) { .viewfinder-rec span { animation: none; } }
   .cinema-poster h1 { text-shadow: 3px 3px 0 var(--color-paper), 4px 4px 0 var(--color-olive); }
   .film-credit { display: flex; align-items: center; gap: 1rem; color: var(--color-olive); text-align: left; font-size: .55rem; line-height: 1.8; text-transform: uppercase; letter-spacing: .2em; }
   .film-reel { display: block; width: 2.8rem; height: 2.8rem; border: 1px solid currentColor; border-radius: 50%; background: radial-gradient(circle at 50% 25%, currentColor 0 3px, transparent 3.5px), radial-gradient(circle at 75% 50%, currentColor 0 3px, transparent 3.5px), radial-gradient(circle at 50% 75%, currentColor 0 3px, transparent 3.5px), radial-gradient(circle at 25% 50%, currentColor 0 3px, transparent 3.5px), radial-gradient(circle, currentColor 0 2px, transparent 2.5px); }
@@ -177,8 +183,5 @@
     .listing-seats { grid-column: 4; grid-row: 1; justify-content: center; font-size: .85rem; }
     .listing-action { grid-column: 5; grid-row: 1; }
     .ticket-stub { margin-inline: -2.5rem; margin-bottom: -2.5rem; padding-inline: 2.5rem; }
-  }
-  @media (max-width: 639px) {
-    .theme-toggle { position: absolute; top: .75rem; right: 1rem; }
   }
 }

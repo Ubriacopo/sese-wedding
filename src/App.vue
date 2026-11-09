@@ -82,11 +82,11 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
      class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-paper focus:p-4">Vai al
     contenuto</a>
   <header
-      class="site-header mx-auto flex max-w-7xl flex-col items-start justify-between gap-3 sm:flex-row sm:items-center border-b border-line px-4 py-4 sm:gap-6 sm:px-12 sm:py-6">
-    <a href="#" aria-label="Jacopo e Agnese, inizio" class="shrink-0 font-serif text-2xl italic">j<span
+      class="site-header mx-auto flex max-w-7xl items-center gap-3 px-3 sm:gap-5 sm:px-8">
+    <a href="#" aria-label="Jacopo e Agnese, inizio" class="shrink-0 font-serif text-xl italic">j<span
         class="px-1 text-olive">&</span>a</a>
-    <nav aria-label="Navigazione principale" class="w-full min-w-0 sm:w-auto">
-      <ul class="flex snap-x snap-proximity gap-6 overflow-x-auto overscroll-x-contain px-1 py-2 text-xs sm:flex-wrap sm:justify-end sm:gap-6">
+    <nav aria-label="Navigazione principale" class="min-w-0 flex-1">
+      <ul class="flex snap-x snap-proximity gap-4 overflow-x-auto overscroll-x-contain px-1 text-xs sm:gap-6">
         <li v-for="link in navigation" :key="link.href" class="shrink-0 snap-start">
           <a :href="link.href" :aria-current="activeSection === link.href ? 'location' : undefined"
              class="flex min-h-11 items-center whitespace-nowrap underline-offset-8 transition-colors focus-visible:outline-offset-2 motion-reduce:transition-none"
@@ -97,12 +97,13 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
       </ul>
     </nav>
     <button type="button" class="theme-toggle" :aria-pressed="isDark" aria-label="Tema scuro" @click="toggleTheme">
-      <span aria-hidden="true">{{ isDark ? '◐' : '◑' }}</span> {{ isDark ? 'Luci accese' : 'Luci spente' }}
+      <span aria-hidden="true">{{ isDark ? '◐' : '◑' }}</span><span class="hidden sm:inline">{{ isDark ? 'Luci accese' : 'Luci spente' }}</span>
     </button>
   </header>
   <main id="main" class="[overflow-wrap:anywhere]">
+    <div class="hero-stage">
     <section
-        class="cinema-poster mx-auto flex min-h-[560px] max-w-7xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6 sm:py-24 sm:min-h-[760px]">
+        class="cinema-poster mx-auto flex min-h-[560px] w-full max-w-7xl flex-col items-center justify-center px-4 py-16 text-center sm:min-h-[760px] sm:px-6 sm:py-24">
       <div class="viewfinder-rec" aria-hidden="true"><span></span> REC</div>
       <p :class="label" class="mb-10">Una storia d’amore · Un’unica prima</p>
       <p class="mb-5 font-serif text-xl italic sm:text-2xl">{{ wedding.names }}</p>
@@ -120,6 +121,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
         dettagli <span
             aria-hidden="true" class="ml-3">↓</span></a>
     </section>
+    </div>
     <section class="border-y border-line bg-panel px-6 py-20 text-center sm:py-24">
       <p :class="label">Con la partecipazione di tutti voi</p>
       <h2 class="mx-auto mt-6 max-w-2xl font-serif text-4xl leading-tight tracking-tight sm:text-5xl">Il nostro film più
@@ -235,8 +237,8 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
           biglietto ↗</a></footer>
       </div>
     </section>
-    <section class="cinema-foyer px-6 py-24 sm:px-12 sm:py-28">
-      <div class="mx-auto grid max-w-6xl items-start gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
+    <section id="presenza" class="cinema-foyer flex items-center px-6 py-24 sm:px-12 sm:py-28">
+      <div class="mx-auto grid w-full max-w-6xl items-start gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
         <div><p class="text-[10px] uppercase tracking-[0.22em] text-[#f5f2e9]/70">05 / La biglietteria</p>
           <h2 class="mt-6 font-serif text-6xl tracking-tight sm:text-7xl">Ci sarai?</h2>
           <p class="mt-6 max-w-md text-sm leading-7 text-[#f5f2e9]/80">La compagnia è la parte più bella.<br>{{

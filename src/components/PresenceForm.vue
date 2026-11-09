@@ -112,7 +112,7 @@ async function submitPresence() {
 </script>
 
 <template>
-  <section v-if="invitationState === 'closed'" id="presenza" class="ticket-scene" aria-labelledby="closed-screening-title">
+  <section v-if="invitationState === 'closed'" class="ticket-scene" aria-labelledby="closed-screening-title">
     <div class="flex min-h-72 flex-col items-center justify-center px-4 py-10 text-center text-[#f5f2e9] sm:min-h-96">
       <h3 id="closed-screening-title" lang="en" class="max-w-md font-serif text-4xl leading-tight sm:text-5xl">{{ wedding.rsvpUnavailable.title }}</h3>
       <p lang="en" class="mt-5 text-sm leading-7">{{ wedding.rsvpUnavailable.message }}</p>
@@ -122,7 +122,7 @@ async function submitPresence() {
       <span class="ticket-stamp">J &amp; A<br>★</span>
     </footer>
   </section>
-  <section v-else-if="invitationState !== 'ready'" id="presenza" class="ticket-scene" :aria-busy="invitationState === 'loading'" aria-labelledby="unavailable-ticket-title">
+  <section v-else-if="invitationState !== 'ready'" class="ticket-scene" :aria-busy="invitationState === 'loading'" aria-labelledby="unavailable-ticket-title">
     <div class="cinema-ticket ticket-upper text-ink">
       <header class="ticket-header">
         <p class="ticket-kicker">{{ wedding.names }}</p>
@@ -138,7 +138,7 @@ async function submitPresence() {
       <span class="ticket-stamp" aria-hidden="true">J &amp; A<br>★</span>
     </footer>
   </section>
-  <form v-else id="presenza" ref="ticketForm" class="ticket-scene min-w-0 [&_label]:min-w-0 [&_label]:text-[0.8rem] [&_label]:font-medium" @submit.prevent="submitPresence">
+  <form v-else ref="ticketForm" class="ticket-scene min-w-0 [&_label]:min-w-0 [&_label]:text-[0.8rem] [&_label]:font-medium" @submit.prevent="submitPresence">
     <div class="ticket-stage">
       <div v-if="ticketReleaseCount" class="ticket-thanks" role="status">
         <h3 ref="thankYouHeading" tabindex="-1" class="font-serif text-4xl leading-tight sm:text-5xl">Grazie per la risposta</h3>
@@ -197,8 +197,7 @@ async function submitPresence() {
 </template>
 
 <style scoped>
-/* Offset the page's 6rem scroll padding so the complete ticket starts 1rem from the top. */
-.ticket-scene { width: 100%; max-width: 38rem; margin-inline: auto; scroll-margin-top: -5rem; }
+.ticket-scene { width: 100%; max-width: 38rem; margin-inline: auto; scroll-margin-top: 0; }
 .ticket-header { padding: .6rem; }
 .ticket-header h3 { margin: .3rem 0 .5rem; font-size: clamp(1.5rem, 4vw, 2rem); }
 .ticket-meta { padding-top: .4rem; gap: .25rem .75rem; }
