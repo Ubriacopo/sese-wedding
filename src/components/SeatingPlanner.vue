@@ -35,6 +35,7 @@ const zoom = ref('fit')
 const editorWidth = ref(0)
 const effectiveZoom = computed(() => zoom.value === 'fit' ? Math.max(1, editorWidth.value / 1200) : Number(zoom.value))
 const floorScroll = ref<HTMLElement>()
+const camera = ref({ x: 0, y: 0 })
 const cameraPanning = ref(false)
 let cameraDrag: { pointerId: number, x: number, y: number, scrollLeft: number, scrollTop: number } | undefined
 const planner = ref<HTMLElement>()
@@ -124,14 +125,15 @@ function clampPanels() {
 }
 
 function startCameraPan(event: PointerEvent) {
-  if (event.button !== 1 || !floorScroll.value || personDrag.value || drag || panelDrag) return
+  if (!floorScroll.value || personDrag.value || drag || panelDrag) return
+  if (event.button !== 1 && (event.button !== 0 || (event.target as HTMLElement).closest('button'))) return
   event.preventDefault()
   cameraDrag = {
     pointerId: event.pointerId,
     x: event.clientX,
     y: event.clientY,
-    scrollLeft: floorScroll.value.scrollLeft,
-    scrollTop: floorScroll.value.scrollTop
+    scrollLeft: camera.value.x,
+    scrollTop: camera.value.y
   }
   cameraPanning.value = true
   floorScroll.value.setPointerCapture(event.pointerId)
@@ -140,8 +142,34 @@ function startCameraPan(event: PointerEvent) {
 function moveCamera(event: PointerEvent) {
   if (!cameraDrag || cameraDrag.pointerId !== event.pointerId || !floorScroll.value) return
   event.preventDefault()
-  floorScroll.value.scrollLeft = cameraDrag.scrollLeft - (event.clientX - cameraDrag.x)
-  floorScroll.value.scrollTop = cameraDrag.scrollTop - (event.clientY - cameraDrag.y)
+  camera.value = { x: cameraDrag.scrollLeft + event.clientX - cameraDrag.x, y: cameraDrag.scrollTop + event.clientY - cameraDrag.y }
+}
+
+function panWheel(event: WheelEvent) {
+  const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? floorScroll.value?.clientHeight ?? 600 : 1
+  camera.value.x -= (event.shiftKey ? event.deltaY : event.deltaX) * unit
+  camera.value.y -= (event.shiftKey ? 0 : event.deltaY) * unit
+}
+
+function panWithKeyboard(event: KeyboardEvent) {
+  if (event.target !== floorScroll.value) return
+  const directions: Record<string, [number, number]> = { ArrowLeft: [80, 0], ArrowRight: [-80, 0], ArrowUp: [0, 80], ArrowDown: [0, -80] }
+  const direction = directions[event.key]
+  if (!direction) return
+  event.preventDefault()
+  camera.value.x += direction[0]
+  camera.value.y += direction[1]
+}
+
+function frameTables() {
+  const floor = floorScroll.value
+  if (!floor) return
+  const left = activeTables.value.length ? Math.min(...activeTables.value.map((table) => table.x - 40)) : 0
+  const top = activeTables.value.length ? Math.min(...activeTables.value.map((table) => table.y - 40)) : 0
+  const right = activeTables.value.length ? Math.max(...activeTables.value.map((table) => table.x + 340)) : 1200
+  const bottom = activeTables.value.length ? Math.max(...activeTables.value.map((table) => table.y + 340)) : 900
+  zoom.value = String(Math.min(floor.clientWidth / (right - left), floor.clientHeight / (bottom - top), 1))
+  camera.value = { x: -left * Number(zoom.value), y: -top * Number(zoom.value) }
 }
 
 function endCameraPan(event: PointerEvent) {
@@ -294,6 +322,12 @@ async function mutate(action: () => Promise<unknown>, success: string) {
 }
 
 async function saveTable() {
+  const isNew = selectedTableId.value === null
+  const floor = floorScroll.value
+  const newPosition = {
+    x: Math.round(((floor?.clientWidth ?? 1200) / 2 - camera.value.x) / effectiveZoom.value - 150),
+    y: Math.round(((floor?.clientHeight ?? 900) / 2 - camera.value.y) / effectiveZoom.value - 150)
+  }
   await mutate(async () => {
     const {data, error: saveError} = await supabase!.rpc('dashboard_save_table', {
       admin_password: props.password,
@@ -303,6 +337,12 @@ async function saveTable() {
     })
     if (saveError) throw saveError
     selectedTableId.value = data
+    if (isNew) {
+      const { error: moveError } = await supabase!.rpc('dashboard_move_table', {
+        admin_password: props.password, selected_table_id: data, position_x: newPosition.x, position_y: newPosition.y
+      })
+      if (moveError) throw moveError
+    }
     editingTable.value = false
   }, 'Tavolo salvato.')
 }
@@ -365,8 +405,8 @@ function scrollWhileDragging() {
   const floor = floorScroll.value
   const bounds = floor?.getBoundingClientRect()
   if (floor && bounds && current.x >= bounds.left && current.x <= bounds.right && current.y >= bounds.top && current.y <= bounds.bottom) {
-    floor.scrollBy(current.x > bounds.right - 40 ? 10 : current.x < bounds.left + 40 ? -10 : 0,
-        current.y > bounds.bottom - 40 ? 10 : current.y < bounds.top + 40 ? -10 : 0)
+    camera.value.x += current.x > bounds.right - 40 ? -10 : current.x < bounds.left + 40 ? 10 : 0
+    camera.value.y += current.y > bounds.bottom - 40 ? -10 : current.y < bounds.top + 40 ? 10 : 0
   }
   const verticalScroll = current.y < 60 ? -12 : current.y > window.innerHeight - 60 ? 12 : 0
   if (verticalScroll) {
@@ -444,18 +484,6 @@ function dragKeydown(event: KeyboardEvent) {
   } else if (event.key === 'Escape' && fullscreen.value) {
     event.preventDefault()
     setFullscreen(false)
-  } else if (event.key === 'Tab' && fullscreen.value && planner.value) {
-    const controls = [...planner.value.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, [tabindex]:not([tabindex="-1"])')]
-        .filter((control) => control.getClientRects().length > 0)
-    const first = controls[0]
-    const last = controls[controls.length - 1]
-    if (first && last && event.shiftKey && (document.activeElement === first || !planner.value.contains(document.activeElement))) {
-      event.preventDefault()
-      last.focus()
-    } else if (first && last && !event.shiftKey && (document.activeElement === last || !planner.value.contains(document.activeElement))) {
-      event.preventDefault()
-      first.focus()
-    }
   }
 }
 
@@ -475,29 +503,50 @@ async function moveTable(table: DiningTable, x: number, y: number) {
   await mutate(async () => {
     const {error: moveError} = await supabase!.rpc('dashboard_move_table', {
       admin_password: props.password, selected_table_id: table.id,
-      position_x: Math.max(0, Math.min(900, Math.round(x))), position_y: Math.max(0, Math.min(600, Math.round(y))),
+      position_x: Math.round(x), position_y: Math.round(y),
     })
     if (moveError) throw moveError
   }, 'Posizione salvata.')
 }
 
-let drag: { table: DiningTable, clientX: number, clientY: number, x: number, y: number } | undefined
+let drag: { table: DiningTable, clientX: number, clientY: number, x: number, y: number, cameraX: number, cameraY: number, pointerX: number, pointerY: number } | undefined
+let tableDragFrame = 0
 
 function startDrag(event: PointerEvent, table: DiningTable) {
   if (busy.value || personDrag.value || event.button !== 0) return
   selectTable(table)
-  drag = {table, clientX: event.clientX, clientY: event.clientY, x: table.x, y: table.y}
+  drag = {table, clientX: event.clientX, clientY: event.clientY, x: table.x, y: table.y, cameraX: camera.value.x, cameraY: camera.value.y, pointerX: event.clientX, pointerY: event.clientY}
+  tableDragFrame = requestAnimationFrame(scrollTableDrag)
   const handle = event.currentTarget as HTMLElement
   handle.setPointerCapture(event.pointerId)
 }
 
 function dragTable(event: PointerEvent) {
   if (!drag) return
-  drag.table.x = Math.max(0, Math.min(900, Math.round(drag.x + (event.clientX - drag.clientX) / effectiveZoom.value)))
-  drag.table.y = Math.max(0, Math.min(600, Math.round(drag.y + (event.clientY - drag.clientY) / effectiveZoom.value)))
+  drag.pointerX = event.clientX
+  drag.pointerY = event.clientY
+  updateDraggedTable()
+}
+
+function updateDraggedTable() {
+  if (!drag) return
+  drag.table.x = Math.round(drag.x + (drag.pointerX - drag.clientX - camera.value.x + drag.cameraX) / effectiveZoom.value)
+  drag.table.y = Math.round(drag.y + (drag.pointerY - drag.clientY - camera.value.y + drag.cameraY) / effectiveZoom.value)
+}
+
+function scrollTableDrag() {
+  if (!drag) return
+  const bounds = floorScroll.value?.getBoundingClientRect()
+  if (bounds) {
+    camera.value.x += drag.pointerX > bounds.right - 40 ? -10 : drag.pointerX < bounds.left + 40 ? 10 : 0
+    camera.value.y += drag.pointerY > bounds.bottom - 40 ? -10 : drag.pointerY < bounds.top + 40 ? 10 : 0
+    updateDraggedTable()
+  }
+  tableDragFrame = requestAnimationFrame(scrollTableDrag)
 }
 
 async function endDrag(cancelled = false) {
+  cancelAnimationFrame(tableDragFrame)
   if (!drag) return
   const current = drag
   drag = undefined
@@ -517,10 +566,14 @@ onMounted(() => {
   if (editor.value) editorResizeObserver.observe(editor.value)
   if (peoplePanel.value) editorResizeObserver.observe(peoplePanel.value)
   if (tablePanel.value) editorResizeObserver.observe(tablePanel.value)
-  if (props.active) refresh()
+  if (props.active) {
+    setFullscreen(true)
+    refresh()
+  }
   window.addEventListener('keydown', dragKeydown)
 })
 onUnmounted(() => {
+  cancelAnimationFrame(tableDragFrame)
   editorResizeObserver?.disconnect()
   cancelPersonDrag()
   if (fullscreen.value) document.body.style.overflow = previousBodyOverflow
@@ -530,7 +583,10 @@ watch(() => props.revision, () => {
   if (props.active) refresh()
 })
 watch(() => props.active, (active) => {
-  if (active) refresh()
+  if (active) {
+    setFullscreen(true)
+    refresh()
+  }
   else {
     cancelPersonDrag()
     endDrag(true)
@@ -541,9 +597,8 @@ watch(() => props.active, (active) => {
 
 <template>
   <section ref="planner" class="seating-planner min-w-0" :class="{ 'is-fullscreen': fullscreen }"
-           :role="fullscreen ? 'dialog' : undefined" :aria-modal="fullscreen ? 'true' : undefined"
            aria-labelledby="seating-title">
-    <div class="flex flex-wrap items-end justify-between gap-4">
+    <div class="planner-heading flex flex-wrap items-end justify-between gap-4">
       <div><p class="text-xs uppercase tracking-[0.2em] text-olive">La disposizione in sala</p>
         <h2 id="seating-title" class="mt-3 font-serif text-3xl sm:text-4xl">Tavoli e posti</h2>
       </div>
@@ -557,7 +612,7 @@ watch(() => props.active, (active) => {
         </button>
       </div>
     </div>
-    <ul class="mt-5 flex flex-wrap gap-3 text-xs" aria-label="Legenda risposte">
+    <ul class="planner-legend mt-5 flex flex-wrap gap-3 text-xs" aria-label="Legenda risposte">
       <li v-for="(label, key) in statusLabels" :key="key" class="status-chip" :class="key">{{ label }}</li>
     </ul>
     <p v-if="message" role="status" class="sr-only">{{ message }}</p>
@@ -566,22 +621,24 @@ watch(() => props.active, (active) => {
     <div class="planner-workspace mt-6 min-w-0" :aria-busy="busy">
       <div class="planner-content min-w-0">
         <div class="flex flex-wrap items-center justify-between gap-3 border border-line bg-panel p-3 text-sm">
-          <span>{{ activeTables.length }} tavoli · {{ unassignedCount }} persone da assegnare</span><label>Zoom <select
+          <div class="flex items-center gap-3"><button type="button" class="grid size-11 place-items-center border border-olive text-2xl" :disabled="busy" aria-label="Aggiungi tavolo" title="Aggiungi tavolo" @click="editTable()">+</button><span>{{ activeTables.length }} tavoli · {{ unassignedCount }} persone da assegnare</span></div><div class="flex items-center gap-3"><button type="button" :class="buttonClass" @click="frameTables">Inquadra tavoli</button><label>Zoom <select
             v-model="zoom" class="min-h-11 border border-line bg-paper px-2">
           <option value="fit">Adatta alla larghezza</option>
           <option value="0.5">50%</option>
           <option value="0.75">75%</option>
           <option value="1">100%</option>
-        </select></label></div>
+          <option v-if="!['fit', '0.5', '0.75', '1'].includes(zoom)" :value="zoom">{{ Math.round(Number(zoom) * 100) }}%</option>
+        </select></label></div></div>
         <div ref="editor" class="editor-surface">
           <div ref="floorScroll" class="floor-scroll" :class="{ 'is-panning': cameraPanning }" tabindex="0"
-               aria-label="Pianta dei tavoli, scorribile in entrambe le direzioni" @pointerdown="startCameraPan"
+               :style="{ backgroundPosition: `${camera.x}px ${camera.y}px`, backgroundSize: `${20 * effectiveZoom}px ${20 * effectiveZoom}px` }"
+               aria-label="Pianta dei tavoli. Trascina lo sfondo, scorri o usa le frecce per spostarti in ogni direzione." @pointerdown="startCameraPan" @wheel.prevent="panWheel" @keydown="panWithKeyboard"
                @pointermove="moveCamera" @pointerup="endCameraPan" @pointercancel="endCameraPan"
                @lostpointercapture="endCameraPan" @auxclick.middle.prevent>
-            <div :style="{ width: `${1200 * effectiveZoom}px`, height: `${900 * effectiveZoom}px` }">
-              <div class="floor-plan" :style="{ transform: `scale(${effectiveZoom})` }">
-                <p v-if="!activeTables.length && loaded" class="p-8 text-sm text-olive">La sala è ancora vuota. Crea il
-                  primo tavolo dal pannello.</p>
+            <div>
+              <div class="floor-plan" :style="{ transform: `translate(${camera.x}px, ${camera.y}px) scale(${effectiveZoom})` }">
+                <p v-if="!activeTables.length && loaded" class="w-72 p-8 text-sm text-olive">La sala è ancora vuota. Aggiungi il
+                  primo tavolo con il pulsante +.</p>
                 <article v-for="table in activeTables" :key="table.id" class="dining-table" :data-drop-table="table.id"
                          :class="{ 'drop-table': dropTarget && dropTarget.table.id === table.id }"
                          :style="{ left: `${table.x}px`, top: `${table.y}px` }" :aria-label="table.name">
@@ -729,9 +786,10 @@ watch(() => props.active, (active) => {
 .seating-planner.is-fullscreen {
   position: fixed;
   inset: 0;
+  top: 49px;
   z-index: 90;
   overflow: auto;
-  padding: clamp(1rem, 2vw, 2rem);
+  padding: 0;
   background: var(--color-paper);
   color: var(--color-ink);
   display: flex;
@@ -739,8 +797,12 @@ watch(() => props.active, (active) => {
 }
 
 .is-fullscreen .planner-workspace, .is-fullscreen .planner-content { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+.is-fullscreen .planner-heading { padding: .5rem .75rem 0; gap: .5rem; }
+.is-fullscreen .planner-heading h2 { margin-top: .25rem; font-size: 1.5rem; }
+.is-fullscreen .planner-legend { margin-top: .5rem; padding: 0 .75rem; }
+.is-fullscreen .planner-workspace { margin-top: .5rem; }
 .is-fullscreen .editor-surface { flex: 1; min-height: 0; }
-.is-fullscreen .floor-scroll { height: 100%; min-height: 0; }
+.is-fullscreen .floor-scroll { position: absolute; inset: 0; height: auto; min-height: 0; border: 0; }
 
 .editor-surface {
   position: relative;
@@ -816,12 +878,16 @@ watch(() => props.active, (active) => {
 }
 
 .floor-scroll {
+  position: relative;
   height: min(800px, 75vh);
   min-height: 420px;
-  overflow: auto;
+  overflow: hidden;
+  touch-action: none;
   border: 1px solid var(--color-line);
   border-top: 0;
   background: var(--color-paper);
+  background-image: radial-gradient(var(--color-line) 1px, transparent 1px);
+  cursor: grab;
 }
 
 .floor-scroll.is-panning, .floor-scroll.is-panning * {
@@ -902,12 +968,12 @@ watch(() => props.active, (active) => {
 }
 
 .floor-plan {
-  position: relative;
-  width: 1200px;
-  height: 900px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
   transform-origin: top left;
-  background-image: radial-gradient(var(--color-line) 1px, transparent 1px);
-  background-size: 20px 20px;
 }
 
 .dining-table {

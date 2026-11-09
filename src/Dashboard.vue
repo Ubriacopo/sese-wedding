@@ -146,20 +146,22 @@ function logout() {
 </script>
 
 <template>
-  <main class="mx-auto px-5 py-12 sm:px-10 sm:py-16" :class="activeTab === 'tables' ? 'max-w-none' : 'max-w-7xl'">
-    <header class="mb-10 flex flex-wrap items-start justify-between">
+  <main class="mx-auto" :class="unlocked ? 'min-h-dvh max-w-none pt-[49px]' : 'max-w-7xl px-5 py-12 sm:px-10 sm:py-16'">
+    <header v-if="!unlocked" class="mb-10 flex flex-wrap items-start justify-between">
       <div><p class="text-xs uppercase tracking-[0.2em] text-olive">Jacopo & Agnese · Area riservata</p></div>
-      <button v-if="unlocked" :class="buttonClass" @click="logout">Esci</button>
     </header>
     <form v-if="!unlocked" class="max-w-sm border border-line bg-panel p-6" @submit.prevent="loadFamilies">
       <h2 class="font-serif text-2xl">Accedi</h2><label class="mt-5 block text-sm">Password<input v-model="password" :class="inputClass" type="password" autocomplete="current-password" required></label>
       <p v-if="error" role="alert" class="mt-4 text-sm">{{ error }}</p><button :disabled="busy" :class="buttonClass" class="mt-5 w-full bg-ink text-paper">{{ busy ? 'Accesso…' : 'Accedi' }}</button>
     </form>
     <template v-else>
-      <div role="tablist" aria-label="Sezioni amministrazione" class="mb-8 flex gap-2 border-b border-line" @keydown="changeTab">
-        <button v-for="tab in adminTabs" :id="`admin-tab-${tab.id}`" :key="tab.id" type="button" role="tab" :aria-selected="activeTab === tab.id" :aria-controls="`admin-panel-${tab.id}`" :tabindex="activeTab === tab.id ? 0 : -1" class="min-h-12 border-b-2 px-4 py-3 text-sm" :class="activeTab === tab.id ? 'border-olive bg-panel font-medium' : 'border-transparent hover:bg-panel'" @click="activeTab = tab.id">{{ tab.label }}</button>
-      </div>
-      <section id="admin-panel-families" :hidden="activeTab !== 'families'" role="tabpanel" aria-labelledby="admin-tab-families" tabindex="0">
+      <nav aria-label="Navigazione amministrazione" class="fixed inset-x-0 top-0 z-[100] flex h-[49px] items-center justify-between border-b border-line bg-paper">
+        <div role="tablist" aria-label="Sezioni amministrazione" class="flex min-w-0 self-stretch" @keydown="changeTab">
+          <button v-for="tab in adminTabs" :id="`admin-tab-${tab.id}`" :key="tab.id" type="button" role="tab" :aria-selected="activeTab === tab.id" :aria-controls="`admin-panel-${tab.id}`" :tabindex="activeTab === tab.id ? 0 : -1" class="min-h-12 border-b-2 px-2 py-3 text-sm sm:px-4" :class="activeTab === tab.id ? 'border-olive bg-panel font-medium' : 'border-transparent hover:bg-panel'" @click="activeTab = tab.id">{{ tab.label }}</button>
+        </div>
+        <button type="button" :class="buttonClass" class="mr-1 shrink-0 sm:mr-2" @click="logout">Esci</button>
+      </nav>
+      <section id="admin-panel-families" :hidden="activeTab !== 'families'" role="tabpanel" aria-labelledby="admin-tab-families" tabindex="0" class="fixed inset-x-0 bottom-0 top-[49px] min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4">
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-4"><div v-for="item in [{ label: 'Invitati previsti', count: invitedCount }, { label: 'Presenti', count: attendingCount }, { label: 'Assenti', count: declinedCount }, { label: 'In attesa', count: pendingCount }]" :key="item.label" class="border border-line bg-panel p-4"><p class="text-xs uppercase tracking-widest text-olive">{{ item.label }}</p><p class="mt-2 font-serif text-3xl">{{ item.count }}</p></div></div>
       <form class="mt-10 border border-line bg-panel p-5 sm:p-6" @submit.prevent="createFamily">
         <h2 class="font-serif text-2xl">Crea una famiglia</h2>
