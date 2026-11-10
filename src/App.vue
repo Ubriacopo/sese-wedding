@@ -210,11 +210,10 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
         <header class="cinema-board-header">
           <p class="cinema-eyebrow">04 / Prima di entrare in sala</p>
           <h2>F.A.Q</h2>
-          <p>Domande, risposte e altre scene utili.</p>
           <div class="marquee-stars" aria-hidden="true">★ ★ ★</div>
         </header>
         <div class="board-columns" aria-hidden="true"><span>Sala</span><span>Le vostre domande</span><span
-            class="listing-desktop-heading">Orario</span><span class="listing-desktop-heading">Posti liberi</span><span>Info</span>
+            class="listing-desktop-heading">Orario</span><span class="listing-desktop-heading">Posti liberi</span>
         </div>
         <div class="cinema-listings">
           <details v-for="(faq, index) in faqs" :id="faq.id" :key="faq.id" name="cinema-faq" class="cinema-listing">
