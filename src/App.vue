@@ -5,6 +5,7 @@ import GuestCredits from './components/GuestCredits.vue'
 import CinemaIntro from './components/CinemaIntro.vue'
 import CinemaPoster from './components/CinemaPoster.vue'
 import UpcomingMovies from './components/UpcomingMovies.vue'
+import HollywoodLights from './components/HollywoodLights.vue'
 import {wedding} from './content/wedding'
 import faqs from './content/faqs.json'
 
@@ -134,6 +135,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
       </div>
     </section>
     <div class="programme-wallpaper programme-projector">
+      <HollywoodLights />
       <section id="giornata" class="mx-auto max-w-6xl px-6 py-16 sm:px-12 sm:py-32">
         <div class="mobile-wallpaper-heading mb-8 flex flex-wrap items-end justify-between gap-6 sm:mb-14">
           <div><p :class="label" class="mb-5">01 / La programmazione del giorno</p>

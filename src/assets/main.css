@@ -51,6 +51,34 @@
     background-repeat: no-repeat, repeat-y;
   }
   .programme-projector { --programme-background: url('/hollywood-mobile.png'); background-size: 100% 100%, cover; background-position: center bottom; background-repeat: no-repeat; }
+  .programme-projector { position: relative; isolation: isolate; overflow: hidden; }
+  .programme-projector > section { position: relative; z-index: 1; }
+  .hollywood-lights { position: absolute; inset: 0; pointer-events: none; opacity: .75; }
+  .hollywood-lights svg { position: absolute; width: 100%; height: 100%; inset: 0; }
+  .hollywood-lights-desktop { display: none; }
+  .hollywood-searchlight { animation: hollywood-light-glow 8s ease-in-out infinite; }
+  @keyframes hollywood-light-glow {
+    0%, 100% { opacity: .08; }
+    45%, 55% { opacity: .65; }
+  }
+  .hollywood-star { animation: hollywood-twinkle 6s ease-in-out infinite; }
+  .hollywood-window { animation: hollywood-window-light 24s ease-in-out infinite; }
+  @keyframes hollywood-twinkle {
+    0%, 100% { opacity: .08; }
+    50% { opacity: .8; }
+  }
+  @keyframes hollywood-window-light {
+    0%, 20%, 85%, 100% { opacity: .03; }
+    35%, 65% { opacity: .65; }
+  }
+  @media (min-width: 640px) {
+    .hollywood-lights-mobile { display: none; }
+    .hollywood-lights-desktop { display: block; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hollywood-searchlight { animation: none; opacity: .3; }
+    .hollywood-star, .hollywood-window { animation: none; opacity: .2; }
+  }
   .programme-wallpaper:not(.gift-wallpaper):not(.programme-projector):not(#domande) { background-image: none; }
   .programme-wallpaper:has(.mobile-wallpaper-heading) { overflow-x: clip; }
   .guest-credits-section { position: relative; isolation: isolate; overflow: hidden; min-height: max(100svh, 48rem); background: var(--color-panel); }
