@@ -39,6 +39,7 @@ async function copyGiftIban() {
 }
 
 const navigation = [
+  {href: '#titoli-di-coda', label: 'Titoli di coda'},
   {href: '#giornata', label: 'La giornata'},
   ...(wedding.upcomingMovies.length ? [{href: '#prossimamente', label: 'Prossimamente'}] : []),
   {href: '#informazioni', label: 'Info utili'},
@@ -124,7 +125,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
             aria-hidden="true" class="ml-3">↓</span></a>
     </section>
     </div>
-    <section aria-labelledby="guest-credits-title" class="guest-credits-section border-y border-line px-6 py-20 text-center sm:py-24">
+    <section id="titoli-di-coda" aria-labelledby="guest-credits-title" class="guest-credits-section border-y border-line px-6 py-20 text-center sm:py-24">
       <GuestCredits />
       <div class="guest-credits-copy">
         <p :class="label">Con la partecipazione di tutti voi</p>

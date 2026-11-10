@@ -81,7 +81,7 @@
   }
   .programme-wallpaper:not(.gift-wallpaper):not(.programme-projector):not(#domande) { background-image: none; }
   .programme-wallpaper:has(.mobile-wallpaper-heading) { overflow-x: clip; }
-  .guest-credits-section { position: relative; isolation: isolate; overflow: hidden; min-height: max(100svh, 48rem); background: var(--color-panel); }
+  .guest-credits-section { --color-panel: #000; --color-ink: #f5f2e9; --color-olive: #b7bf98; --color-line: #48503f; color-scheme: dark; position: relative; isolation: isolate; overflow: hidden; min-height: max(100svh, 48rem); color: var(--color-ink); background: var(--color-panel); }
   .guest-credits-backdrop { position: absolute; z-index: 0; inset: 0; pointer-events: none; }
   .guest-credits-window { position: absolute; inset: 0; overflow: hidden; mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent); }
   .guest-credits-roll { display: flex; flex-direction: column; animation: guest-credits-scroll var(--credits-duration, 60s) linear infinite; }
