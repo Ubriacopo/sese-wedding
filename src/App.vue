@@ -23,6 +23,7 @@ function toggleTheme() {
 }
 
 const activeSection = ref(window.location.hash)
+const navigationOnDark = ref(false)
 const giftCopyStatus = ref('')
 const ibanInput = ref<HTMLInputElement>()
 
@@ -53,8 +54,29 @@ function updateActiveSection() {
 }
 
 let timelineObserver: IntersectionObserver | undefined
+let navigationFrame = 0
+let darkNavigationSurfaces: Element[] = []
+
+function updateNavigationContrast() {
+  if (navigationFrame) return
+  navigationFrame = requestAnimationFrame(() => {
+    navigationFrame = 0
+    const header = document.querySelector('.site-header')
+    if (!header) return
+    const midpoint = header.getBoundingClientRect().height / 2
+    navigationOnDark.value = darkNavigationSurfaces.some((surface) => {
+      const bounds = surface.getBoundingClientRect()
+      return bounds.top <= midpoint && bounds.bottom > midpoint
+    })
+  })
+}
+
 onMounted(() => {
   window.addEventListener('hashchange', updateActiveSection)
+  darkNavigationSurfaces = Array.from(document.querySelectorAll('.guest-credits-section, .cinema-board, .cinema-foyer, .gift-wallpaper'))
+  window.addEventListener('scroll', updateNavigationContrast, {passive: true})
+  window.addEventListener('resize', updateNavigationContrast)
+  updateNavigationContrast()
   const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
   if (motionPreference.matches || !('IntersectionObserver' in window)) return
   timelineObserver = new IntersectionObserver((entries) => {
@@ -74,6 +96,9 @@ onMounted(() => {
 onUnmounted(() => {
   timelineObserver?.disconnect()
   window.removeEventListener('hashchange', updateActiveSection)
+  window.removeEventListener('scroll', updateNavigationContrast)
+  window.removeEventListener('resize', updateNavigationContrast)
+  cancelAnimationFrame(navigationFrame)
 })
 
 const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
@@ -85,6 +110,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
      class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-paper focus:p-4">Vai al
     contenuto</a>
   <header
+      :class="{'site-header-on-dark': navigationOnDark}"
       class="site-header mx-auto flex max-w-7xl items-center gap-3 px-3 sm:gap-5 sm:px-8">
     <a href="#" aria-label="Jacopo e Agnese, inizio" class="shrink-0 font-serif text-xl italic">j<span
         class="px-1 text-olive">&</span>a</a>
@@ -208,7 +234,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
         </div>
       </div>
     </section>
-    <section id="domande" class="programme-wallpaper max-sm:bg-none max-sm:bg-transparent sm:px-12 sm:py-24">
+    <section id="domande" class="programme-wallpaper faq-section sm:px-12 sm:pt-24">
       <div class="cinema-board mx-auto max-w-4xl">
         <header class="cinema-board-header">
           <p class="cinema-eyebrow">04 / Prima di entrare in sala</p>
@@ -238,12 +264,16 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
                 v-html="faq.answerHtml"></div>
           </details>
         </div>
-        <p class="board-scene-note">Orari e posti liberi sono dettagli di scena.</p>
-        <footer class="cinema-board-footer"><span>{{ wedding.names }} · La prima</span><a href="#presenza">Il tuo
-          biglietto ↗</a></footer>
+      </div>
+      <div class="faq-banner">
+        <div class="mx-auto max-w-4xl px-6 py-6 sm:px-8">
+          <p class="board-scene-note">Orari e posti liberi sono dettagli di scena.</p>
+          <footer class="cinema-board-footer"><span>{{ wedding.names }} · La prima</span><a href="#presenza">Il tuo
+            biglietto ↗</a></footer>
+        </div>
       </div>
     </section>
-    <section id="presenza" class="cinema-foyer flex items-center px-6 py-8 max-sm:min-h-0 sm:px-12 sm:py-28">
+    <section id="presenza" class="cinema-foyer flex items-center px-6 py-16 max-sm:min-h-0 sm:px-12 sm:py-28">
       <div class="mx-auto grid w-full max-w-6xl items-start gap-6 sm:gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
         <div><p class="text-[10px] uppercase tracking-[0.22em] text-[#f5f2e9]/70">05 / La biglietteria</p>
           <h2 class="mt-3 font-serif text-5xl tracking-tight sm:mt-6 sm:text-7xl">Ci sarai?</h2>
