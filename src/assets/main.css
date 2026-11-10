@@ -224,13 +224,23 @@
     .ticket-stub { margin-inline: -1.5rem; margin-bottom: -1.5rem; padding-inline: 1.75rem; }
   }
   @media (min-width: 768px) {
-    .board-columns, .cinema-listing summary { grid-template-columns: 3rem minmax(0, 1fr) 4rem 4.5rem 2rem; gap: 1rem; }
+    .cinema-board { padding: 1.5rem; }
+    .cinema-board-header { padding: 1rem .5rem 1.25rem; }
+    .cinema-board-header h2 { margin-block: .75rem; font-size: 3rem; }
+    .marquee-stars { margin-top: .75rem; }
+    .board-columns, .cinema-listing summary { grid-template-columns: 2rem minmax(0, 1fr) 3.5rem 4rem 1.5rem; gap: .75rem; }
+    .board-columns { padding-block: .75rem; }
+    .cinema-listing summary { min-height: 4.75rem; padding-block: .85rem; }
+    .listing-title { font-size: .9rem; letter-spacing: .06em; }
+    .listing-number { font-size: .85rem; }
+    .listing-subtitle { margin-top: .25rem; }
+    .listing-answer { padding: 0 2.5rem 1.25rem 3rem; line-height: 1.75; }
     .listing-desktop-heading { display: block; text-align: center; }
     .listing-mobile-label { display: none; }
     .listing-showing { display: contents; }
-    .listing-showtime { grid-column: 3; grid-row: 1; text-align: center; font-size: .85rem; }
-    .listing-seats { grid-column: 4; grid-row: 1; justify-content: center; font-size: .85rem; }
-    .listing-action { grid-column: 5; grid-row: 1; }
+    .listing-showtime { grid-column: 3; grid-row: 1; text-align: center; font-size: .75rem; }
+    .listing-seats { grid-column: 4; grid-row: 1; justify-content: center; font-size: .75rem; }
+    .listing-action { grid-column: 5; grid-row: 1; font-size: 1.25rem; }
     .ticket-stub { margin-inline: -2.5rem; margin-bottom: -2.5rem; padding-inline: 2.5rem; }
   }
 }

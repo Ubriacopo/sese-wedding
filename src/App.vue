@@ -208,7 +208,7 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
       </div>
     </section>
     <section id="domande" class="programme-wallpaper max-sm:bg-none max-sm:bg-transparent sm:px-12 sm:py-24">
-      <div class="cinema-board mx-auto max-w-[1056px]">
+      <div class="cinema-board mx-auto max-w-4xl">
         <header class="cinema-board-header">
           <p class="cinema-eyebrow">04 / Prima di entrare in sala</p>
           <h2>F.A.Q</h2>
