@@ -98,7 +98,7 @@
   @keyframes guest-credits-scroll { from { transform: translateY(-50%); } to { transform: translateY(0); } }
   @media (max-width: 639px) {
     .guest-credits-sequence { padding-inline: .75rem; }
-    .guest-credits-copy { padding-inline: .5rem; }
+    .guest-credits-copy { max-width: none; margin-inline: -1.5rem; padding-inline: 2rem; background: var(--color-panel); }
     .guest-credits-photo { padding: .35rem .35rem 1rem; }
   }
   @media (prefers-reduced-motion: reduce) {
