@@ -6,7 +6,7 @@ Use Node.js 22.22.2+ or 24.15+. Run `npm install` and `npm run dev` to develop; 
 
 Edit `src/content/wedding.ts` for names, date, location, schedule, travel and accommodation. Empty fields display placeholder copy. Map links appear when `mapsUrl` is set. RSVP responses can be saved in Supabase as described below.
 
-The layout is in `src/App.vue`. Tailwind theme tokens and minimal global styles are in `src/assets/main.css`. The FAQ titles use the locally hosted Cinzel font; its license is included in `public/fonts`. Supabase is optional for local preview and required to save RSVP responses.
+The layout is in `src/App.vue`. Tailwind theme tokens and minimal global styles are in `src/assets/main.css`. The FAQ titles use the locally hosted Cinzel font; its license is included in `public/fonts`. Supabase is optional for local preview and required to save RSVP responses and load the invited guests in the opening credits.
 
 The cinema programme uses `events` in `src/content/wedding.ts`. Event stages are illustrative; update them to match the actual schedule.
 
@@ -20,7 +20,7 @@ Each family has exactly one invitation link, including families with just one pe
 
 ### Set up Supabase
 
-1. Create a Supabase project. In its SQL editor, run all SQL migrations in `supabase/migrations/` in filename order, once each. These create families, guests, invitations, responses and token-scoped functions. The table has row level security enabled and no public table access; the functions validate inputs; public registration creates a new group, while updates require its token.
+1. Create a Supabase project. In its SQL editor, run all SQL migrations in `supabase/migrations/` in filename order, once each. These create families, guests, invitations, responses and token-scoped functions. The table has row level security enabled and no public table access; the functions validate inputs; public registration creates a new group, while updates require its token. `20261109000008_guest_credits.sql` exposes only names belonging to active invitations (including named companions, excluding headcount placeholders) for the animated opening credits; without Supabase or this migration, that background stays hidden.
 2. Copy `.env.example` to `.env.local`, then set `VITE_SUPABASE_URL` to the project URL and `VITE_SUPABASE_PUBLISHABLE_KEY` to the project publishable key (a legacy anon key also works). These are public browser settings. Never use a secret or service role key here.
 3. Restart the development server. The RSVP form is always available. Valid personal links prefill the existing family; missing or invalid tokens show the public registration form. Supabase settings are required to save responses.
 4. For GitHub Pages, add the same two values as repository variables under **Settings → Secrets and variables → Actions → Variables**, then redeploy. Vite embeds them at build time. Until both variables are configured, the deployed form cannot save responses.
@@ -99,7 +99,7 @@ The FAQ board uses `showtime` (for example `15:30`) and `seatsLeft` (for example
 
 ## Invitation regression checks
 
-Run `npm run build` for Vue and TypeScript validation. For database behavior, run `supabase/tests/family_plus_one.sql` as the database owner in the Supabase SQL editor after applying migrations. This standalone SQL check raises an exception on failure and rolls back its temporary guests, responses, and dashboard password setting. It checks one link per family, named and headcount answers, hidden and enforced capacity, unrelated-member rejection, companion permissions, response updates, authorization, and revoked links. No test framework is required.
+Run `npm run build` for Vue and TypeScript validation. For database behavior, run `supabase/tests/family_plus_one.sql` as the database owner in the Supabase SQL editor after applying migrations. This standalone SQL check raises an exception on failure and rolls back its temporary guests, responses, and dashboard password setting. It checks one link per family, named and headcount answers, hidden and enforced capacity, unrelated-member rejection, companion permissions, response updates, authorization, and revoked links. Run `supabase/tests/guest_credits.sql` the same way to verify that the credits feed returns only names from active invitations, includes named companions, excludes headcount placeholders and revoked invitations, and grants access only to the intended API roles. No test framework is required.
 
 ## Seating plan
 
@@ -118,3 +118,7 @@ The expandable seating canvas also requires `20261109000007_unbounded_seating.sq
 The dashboard’s first tab contains families and invitation responses; the second contains table management. Tabs support arrow keys, Home, and End, and preserve draft fields when switching. Opening the tables tab refreshes its saved plan.
 
 Use the **Sposta** handle next to a person to drag them from the roster, or drag an occupied seat directly. Drop on an empty numbered seat for an exact assignment, or on the table for its first available seat. Drop in the dashed unassigned area to free the person’s seat. Occupied/full destinations are rejected; dropping elsewhere or pressing Escape cancels the move. Pointer dragging supports mouse, pen, and touch, with scrolling near the plan/page edges. Selection and **Assegna posto** remain available for keyboard users. Successful drops use the same database validation and persistence as manual assignment.
+
+### Photos in the guest credits
+
+Drop your images into `public/credits/` with any filenames. JPG, JPEG, PNG, WebP, AVIF, GIF, and SVG are discovered automatically and shuffled on each page load; no content configuration or alt text is needed. Remove the placeholder SVGs when adding your own photos. Images occupy one of the two department columns, alternating left and right. Each photo scrolls with its neighboring name group and fades out at the bottom edge of the section. Photos are cropped to 4:3. An empty folder hides photos. Reduced-motion preferences stop the scrolling credits. New files appear during development; rebuild and deploy to update the live site.

@@ -12,6 +12,13 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,
+    watch: {
+      // Avoid the shared Linux inotify limit on this development machine.
+      usePolling: true,
+      interval: 300,
+      binaryInterval: 1000,
+      ignored: (path) => /(^|[/\\])supabase([/\\]|$)/.test(path),
+    },
   },
   preview: {
     host: '0.0.0.0',

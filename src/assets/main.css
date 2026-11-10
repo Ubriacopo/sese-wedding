@@ -53,6 +53,30 @@
   .programme-projector { --programme-background: url('/hollywood-mobile.png'); background-size: 100% 100%, cover; background-position: center bottom; background-repeat: no-repeat; }
   .programme-wallpaper:not(.gift-wallpaper):not(.programme-projector):not(#domande) { background-image: none; }
   .programme-wallpaper:has(.mobile-wallpaper-heading) { overflow-x: clip; }
+  .guest-credits-section { position: relative; isolation: isolate; overflow: hidden; min-height: max(100svh, 48rem); background: var(--color-panel); }
+  .guest-credits-backdrop { position: absolute; z-index: 0; inset: 0; pointer-events: none; }
+  .guest-credits-window { position: absolute; inset: 0; overflow: hidden; mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent); }
+  .guest-credits-roll { display: flex; flex-direction: column; animation: guest-credits-scroll var(--credits-duration, 60s) linear infinite; }
+  .guest-credits-sequence { flex: none; width: 100%; padding: 1.5rem; }
+  .guest-credits-row { display: grid; gap: 1.25rem; padding-block: 1rem; }
+  .guest-credits-units { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: center; max-width: 44rem; width: 100%; margin-inline: auto; }
+  .guest-credits-unit ul { display: grid; gap: .3rem; margin: 0; padding: 0; list-style: none; }
+  .guest-credits-unit li { color: color-mix(in srgb, var(--color-olive) 70%, var(--color-ink)); opacity: .5; font-family: 'Courier New', monospace; font-size: clamp(.6rem, 1.4vw, .85rem); line-height: 1.5; letter-spacing: .06em; text-align: center; text-transform: uppercase; overflow-wrap: anywhere; }
+  .guest-credits-department { margin: 0 0 .6rem; min-height: 3em; font-family: var(--font-title); font-size: clamp(.7rem, 1.5vw, .95rem); line-height: 1.5; letter-spacing: .12em; opacity: .7; }
+  .guest-credits-copy { position: relative; z-index: 1; max-width: 48rem; margin-inline: auto; padding: 2rem 1.25rem; border-block: 1px solid color-mix(in srgb, var(--color-line) 70%, transparent); background: color-mix(in srgb, var(--color-panel) 92%, transparent); }
+  .guest-credits-photo { grid-column: 1; grid-row: 1; justify-self: center; width: min(100%, 16rem); margin: .5rem 0; padding: .55rem .55rem 1.6rem; background: #eee7d4; box-shadow: 0 .75rem 2rem #0004; }
+  .guest-credits-photo-right { grid-column: 2; }
+  .guest-credits-photo img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; filter: sepia(.2); }
+  @keyframes guest-credits-scroll { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+  @media (max-width: 639px) {
+    .guest-credits-sequence { padding-inline: .75rem; }
+    .guest-credits-copy { padding-inline: .5rem; }
+    .guest-credits-photo { padding: .35rem .35rem 1rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .guest-credits-roll { animation: none; }
+    .guest-credits-sequence-duplicate { display: none; }
+  }
   .mobile-wallpaper-heading { position: relative; isolation: isolate; }
   .mobile-wallpaper-heading::before { content: ''; position: absolute; z-index: -1; top: -4rem; bottom: -1rem; left: calc(50% - 50vw); width: 100vw; background-image: linear-gradient(color-mix(in srgb, var(--color-paper) 82%, transparent), color-mix(in srgb, var(--color-paper) 82%, transparent)), var(--programme-background, url('/wallpaper.jpg')); background-position: center; background-size: cover; }
   .programme-projector .mobile-wallpaper-heading::before { display: none; }

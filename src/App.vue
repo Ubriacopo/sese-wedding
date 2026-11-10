@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {onMounted, onUnmounted, ref} from 'vue'
 import PresenceForm from './components/PresenceForm.vue'
+import GuestCredits from './components/GuestCredits.vue'
 import CinemaIntro from './components/CinemaIntro.vue'
 import CinemaPoster from './components/CinemaPoster.vue'
 import UpcomingMovies from './components/UpcomingMovies.vue'
@@ -122,12 +123,15 @@ const label = 'text-[10px] font-medium uppercase tracking-[0.22em] text-olive'
             aria-hidden="true" class="ml-3">↓</span></a>
     </section>
     </div>
-    <section class="border-y border-line bg-panel px-6 py-20 text-center sm:py-24">
-      <p :class="label">Con la partecipazione di tutti voi</p>
-      <h2 class="mx-auto mt-6 max-w-2xl font-serif text-4xl leading-tight tracking-tight sm:text-5xl">Il nostro film più
-        bello.<br>Con voi, al nostro fianco.</h2>
-      <p class="mx-auto mt-7 max-w-lg text-sm leading-7 text-ink/75">Una giornata insieme alle persone a cui vogliamo
-        bene. Ci saranno un sì, qualcosa di buono da mangiare e tempo per festeggiare.</p>
+    <section aria-labelledby="guest-credits-title" class="guest-credits-section border-y border-line px-6 py-20 text-center sm:py-24">
+      <GuestCredits />
+      <div class="guest-credits-copy">
+        <p :class="label">Con la partecipazione di tutti voi</p>
+        <h2 id="guest-credits-title" class="mx-auto mt-6 max-w-2xl font-serif text-4xl leading-tight tracking-tight sm:text-5xl">Il nostro film più
+          bello.<br>Con voi, al nostro fianco.</h2>
+        <p class="mx-auto mt-7 max-w-lg text-sm leading-7 text-ink/75">Una giornata insieme alle persone a cui vogliamo
+          bene. Ci saranno un sì, qualcosa di buono da mangiare e tempo per festeggiare.</p>
+      </div>
     </section>
     <div class="programme-wallpaper programme-projector">
       <section id="giornata" class="mx-auto max-w-6xl px-6 py-16 sm:px-12 sm:py-32">

@@ -7,6 +7,14 @@ export const wedding = {
   location: 'Tenuta Cascina Canova',
   rsvpEmail: '',
   rsvpDeadline: '',
+  creditsDepartments: [
+    'Sceneggiatura',
+    'Artisti degli effetti visivi',
+    'Unità di produzione I',
+    'Reparto artistico I',
+    'Unità di produzione II',
+    'Reparto artistico II',
+  ],
   rsvpUnavailable: {
     title: 'We might be fully booked for this screening!',
     message: 'Good luck next time!',
