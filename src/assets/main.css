@@ -84,7 +84,7 @@
   .gift-wallpaper { background-image: linear-gradient(#20271f80, #20271f80), url('/cyberpunkcinema-vertical.jpg'); background-position: center; background-size: cover; background-repeat: no-repeat; }
   .gift-wallpaper .gift-credits { background: #252c23df; }
   .programme-banner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem 2rem; border-block: 3px double var(--color-olive); padding-block: 1rem; margin-bottom: 2rem; font-family: 'Courier New', monospace; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--color-olive); }
-  .screenings { display: grid; grid-template-columns: minmax(0, 1fr); gap: 3rem 1.5rem; }
+  .screenings { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem 1.5rem; }
   .screening { width: 100%; max-width: 24rem; margin-inline: auto; min-width: 0; }
   .poster-case { position: relative; padding: .65rem; border: 1px solid #788066; background: #30392d; box-shadow: inset 0 0 0 3px #20271f, 4px 6px 0 #0002; }
   .poster-case::after { content: ''; pointer-events: none; position: absolute; inset: .65rem; background: linear-gradient(120deg, #fff0 30%, #fff1 30.2%, #fff0 61%); border: 1px solid #ffffff30; }
@@ -108,7 +108,7 @@
     .programme-projector { --programme-background: url('/hollywood-desktop.png'); }
     .mobile-wallpaper-heading::before { top: -8rem; }
     .mobile-wallpaper-heading-upcoming::before { top: -4rem; }
-    .screenings { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3rem 2rem; }
+    .screenings { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem 2rem; }
   }
   @media (min-width: 1280px) {
     .screenings { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.5rem; }
